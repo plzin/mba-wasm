@@ -13,6 +13,71 @@ const randomize = document.getElementById('random')
 const output_type = document.getElementById('output-type')
 const output_types = document.getElementsByName('output-type')
 
+// Highlights inline code.
+function hi_in(code) {
+    return `<code class="language-c">${Prism.highlight(code, Prism.languages.c, 'c')}</code>`
+}
+
+// Part of the popover config supplying default values.
+const popover_config = {
+    trigger: 'hover',
+    delay: { show: 500, hide: 100 },
+    html: true,
+    customClass: 'custom-popover',
+}
+
+// Popover for the input box.
+new bootstrap.Popover(input, {
+    ...popover_config,
+    title: 'Expression that will be obfuscated',
+    content:
+`
+The expression has to be a linear combination of boolean expressions currently.
+This limitation will be removed in the future.
+<br>
+E.g. ${hi_in('3*(x & ~y) + 4*(x | y) - 2*~x')}.
+<br>
+More commonly you will probably want to use things like ${hi_in('x + y')}, ${hi_in('x - y')}.
+<br>
+Constants are also allowed ${hi_in('1312')}.
+`
+})
+
+// Popover for the rewrite operation input.
+new bootstrap.Popover(op_input, {
+    ...popover_config,
+    title: 'Operations used during rewriting',
+    content:
+`
+These are the operations that are allowed to appear in the resulting linear combination.
+Currently only bitwise operations are allowed but this could be relaxed
+to linear combinations of bitwise operations.
+The bitwise operations are: not ${hi_in('~x')}, and ${hi_in('x & y')},
+or ${hi_in('x | y')}, xor ${hi_in('x ^ y')}.
+'Not' can be equivalently expressed as ${hi_in('!x')} which is the syntax in Rust.
+Note that in C ${hi_in('!')} does something different.
+Additionally ${hi_in('-1')} is also allowed, (it is the constant 1 function on each bit).
+Of course, the operations can be nested: ${hi_in('~x & (z | (~y ^ -1))')}
+`
+})
+
+// Popover for the 'random solution' button.
+new bootstrap.Popover(document.getElementById('randomize-div'), {
+    ...popover_config,
+    title: `Generate a random output`,
+    content:
+`
+Rewriting the input using the operations involves solving a 'System of Linear Congruences',
+which is very similar to 'Systems of Linear Equations' that are known from Linear Algebra.
+In the same way the solution also is a particular solution plus any vector in the kernel. 
+If randomize solution is disabled, the particular solution that the algorithm returns is used.
+Since the algorithm is deterministic it will always be the same.
+Note that changing the order of the rewrite operations can change the solution.
+To get a canonical solution we could define some sort of norm and try to find the smallest
+solution according to that norm, but this is future work.
+`
+})
+
 // Setup handling for the output type dropdown.
 for (const li of output_types) {
     li.onclick = (e) => {
@@ -100,6 +165,7 @@ btn.onclick = () => {
         output.replaceChildren()
         if (printer == Printer.C) {
             const code = document.createElement('pre')
+            code.classList.add('language-c')
             code.innerHTML = Prism.highlight(s, Prism.languages.c, 'c')
             output.appendChild(code)
 
@@ -115,6 +181,7 @@ btn.onclick = () => {
             output.appendChild(ce_btn)
         } else if (printer == Printer.Rust) {
             const code = document.createElement('pre')
+            code.classList.add('language-rust')
             code.innerHTML = Prism.highlight(s, Prism.languages.rust, 'rust')
             output.appendChild(code)
 

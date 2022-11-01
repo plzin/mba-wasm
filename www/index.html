@@ -6,19 +6,13 @@
         <title>Mixed Boolean-Arithmetic</title>
         <link rel="icon" href="data:,">
         <style>
-            pre {
-                background: #fbfbfb;
-                border-left: 4px solid var(--bs-primary);
-                padding-left: 1em;
-                padding-top: 0.5em;
-                padding-bottom: 0.5em;
-                border-radius: 0.3em;
-                tab-size: 4;
+            .custom-popover {
+                --bs-popover-max-width: 500px !important;
             }
         </style>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-OERcA2EqjJCMA+/3y+gxIOqMEjwtxJY7qPCqsdltbNJuaOe923+mo//f6V8Qbsw3" crossorigin="anonymous"></script>
-        <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.css" rel="stylesheet" />
+        <link href="prism.css" rel="stylesheet" />
         <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.js" data-manual></script>
         <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-clike.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-c.min.js"></script>
@@ -29,7 +23,7 @@
     <body class="container w-75 p-3">
         <div class="w-50 mx-auto">
             <h2 class="mx-auto">Mixed Boolean-Arithmetic Obfuscation</h2>
-            <input id="input" type="text" class="form-control mx-auto" placeholder="Input expression">
+            <input id="input" type="text" class="form-control mx-auto" placeholder="Input expression" data-bs-toggle="popover" data-bs-title="Expression that will be obfuscated" data-bs-content="The expression has to be a linear combination of boolean expressions.">
             <div id="input-error" class="invalid-feedback"></div>
             <div class="mb-2 mt-2">
                 <div class="form-check form-check-inline">
@@ -67,7 +61,7 @@
                     </ul>
                 </div>
                 <div class="col-sm-4">
-                    <div class="form-check mb-1">
+                    <div id="randomize-div" class="form-check mb-1">
                         <input id="random" class="form-check-input" type="checkbox" checked>
                         <label class="form-checklabel" for="random">Random solution</label>
                     </div>
