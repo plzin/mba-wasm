@@ -32,14 +32,15 @@ new bootstrap.Popover(input, {
     title: 'Expression that will be obfuscated',
     content:
 `
-The expression has to be a linear combination of boolean expressions currently.
-This limitation will be removed in the future.
+Currently, the expression has to be a linear combination of boolean expressions.
+Check 'What operations are allowed?' at the bottom of the page.
 <br>
 E.g. ${hi_in('3*(x & ~y) + 4*(x | y) - 2*~x')}.
 <br>
-More commonly you will probably want to use things like ${hi_in('x + y')}, ${hi_in('x - y')}.
+This limitation will be removed in the future and more general expression will be allowed.
+More commonly, you will probably want to use things like ${hi_in('x + y')}, ${hi_in('x - y')}.
 <br>
-Constants are also allowed ${hi_in('1312')}.
+Constants (${hi_in('1312')}) are also allowed.
 `
 })
 
@@ -50,14 +51,7 @@ new bootstrap.Popover(op_input, {
     content:
 `
 These are the operations that are allowed to appear in the resulting linear combination.
-Currently only bitwise operations are allowed but this could be relaxed
-to linear combinations of bitwise operations.
-The bitwise operations are: not ${hi_in('~x')}, and ${hi_in('x & y')},
-or ${hi_in('x | y')}, xor ${hi_in('x ^ y')}.
-'Not' can be equivalently expressed as ${hi_in('!x')} which is the syntax in Rust.
-Note that in C ${hi_in('!')} does something different.
-Additionally ${hi_in('-1')} is also allowed, (it is the constant 1 function on each bit).
-Of course, the operations can be nested: ${hi_in('~x & (z | (~y ^ -1))')}
+Only linear combinations of boolean operations are allowed.
 `
 })
 
@@ -73,10 +67,45 @@ In the same way the solution also is a particular solution plus any vector in th
 If randomize solution is disabled, the particular solution that the algorithm returns is used.
 Since the algorithm is deterministic it will always be the same.
 Note that changing the order of the rewrite operations can change the solution.
-To get a canonical solution we could define some sort of norm and try to find the smallest
+To get a canonical solution, we could define some sort of norm and try to find the smallest
 solution according to that norm, but this is future work.
 `
 })
+
+// 'What is Mixed Boolean-Arithmetic?'
+document.getElementById('acc-col-1').children[0].innerHTML =
+`
+Mixed Boolean-Arithmetic (MBA) is a name for expressions which contain both the usual arithmetic operations
+(${hi_in('+')}, ${hi_in('-')}, ${hi_in('*')}, ${hi_in('/')})
+as well as boolean operations (${hi_in('&')}, ${hi_in('|')}, ${hi_in('^')}, ${hi_in('~')}).
+A simple example is the expression ${hi_in('2 * (x & y) + (x ^ y)')} that computes ${hi_in('x + y')}.
+This particular one works for integers of any number of bits but generally they can be specific to
+a certain size, such as the following one, that also computes ${hi_in('x + y')} but only for 8-bit integers:
+<pre class="language-c" style="font-size: .875rem">${Prism.highlight('-38*(x & y) - 83*(x ^ y) - 64*~(x ^ (y ^ z))\n - 41*~x - 43*~y - 23*y - 44*z - 20*(y & z)\n - 21*(x | z) - 107*(~x & z) - 108*(y | ~z)', Prism.languages.c, 'c')}</pre>
+`
+
+// 'What operations are allowed?'
+document.getElementById('acc-col-2').children[0].innerHTML =
+`
+Currently, this site can only generate <strong>Linear</strong> MBA expressions, which are linear combinations of boolean operations,
+such as ${hi_in('24*(x & y) - 22*(x | y) - 105*(x ^ y) + 128*~x + 128*~y')}.
+The allowed boolean operations are ${hi_in('x & y')} (and), ${hi_in('x | y')} (or), ${hi_in('x ^ y')} (xor), ${hi_in('~x')} (equivalently ${hi_in('!x')}) (not) and ${hi_in('-1')}.
+${hi_in('-1')} is the mnemonic for the constant 1 function on each bit, which (when interpreted in two's complement) has the value -1.
+Note that ${hi_in('!')} is an alias for the logical NOT and the same as ${hi_in('~')} here, whereas this is not the case in C.
+Of course the operations can also be nested: ${hi_in('x & (y | !z)')}.
+Constants ${hi_in('1312')} are also allowed as part of the linear combination and are represented internally as ${hi_in('-1312*(-1)')}.
+<br><br>
+The rewrite operations are usually just the boolean operations that appear in the output linear combination,
+but they can be linear combinations themselves, as using those is equivalent to restricting the coefficients
+of the output.
+<br><br>
+Additionally, the input expression has to be a Linear MBA expression as well, but this will be relaxed in the future.
+The idea is to obfuscate parts of a general expression that are Linear MBA and substitute those in, so often it will
+just be something like ${hi_in('x+y')}.
+The rewrite operations are usually the boolean operations that appear in the linear combination,
+but can also be linear combinations of boolean operations as using those is equivalent to restricting
+the coefficients in the output linear combination.
+`
 
 // Setup handling for the output type dropdown.
 for (const li of output_types) {
@@ -97,7 +126,8 @@ const remove_op = (e) => {
 // Add an operation to the list of operations used for rewriting.
 const add_op = () => {
     // Normalize the operation and make sure it is valid.
-    const s = normalize_op(op_input.value)
+    const bits = Bitness[document.querySelector('input[name=bitness]:checked').value]
+    const s = normalize_op(op_input.value, bits)
     
     // If it isn't, indicate that.
     if (s === '') {

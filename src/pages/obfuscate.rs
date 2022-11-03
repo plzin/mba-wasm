@@ -22,9 +22,19 @@ pub fn obfuscate(req: ObfuscateReq) -> Result<String, String> {
 }
 
 #[wasm_bindgen]
-pub fn normalize_op(expr: String) -> String {
-    UExpr::from_string(expr)
-        .map_or(String::new(), |s| s.to_string())
+pub fn normalize_op(expr: String, bits: Bitness) -> String {
+    match bits {
+        Bitness::U8 => LUExpr::<Wrapping<u8>>::from_string(expr)
+            .map_or(String::new(), |s| s.to_string()),
+        Bitness::U16 => LUExpr::<Wrapping<u16>>::from_string(expr)
+            .map_or(String::new(), |s| s.to_string()),
+        Bitness::U32 => LUExpr::<Wrapping<u32>>::from_string(expr)
+            .map_or(String::new(), |s| s.to_string()),
+        Bitness::U64 => LUExpr::<Wrapping<u64>>::from_string(expr)
+            .map_or(String::new(), |s| s.to_string()),
+        Bitness::U128 => LUExpr::<Wrapping<u128>>::from_string(expr)
+            .map_or(String::new(), |s| s.to_string()),
+    }
 }
 
 fn obfuscate_impl<T: UniformNum + std::fmt::Display>(
@@ -38,13 +48,17 @@ fn obfuscate_impl<T: UniformNum + std::fmt::Display>(
         "Input is not a linear combination of uniform expressions".to_owned()
     )?;
 
-    rewrite(&expr, &req.ops, req.randomize)
+    let ops: Vec<_> = req.ops.into_iter()
+        .map(|s| LUExpr::<T>::from_string(s).unwrap())
+        .collect();
+
+    rewrite(&expr, &ops, req.randomize)
         .map(|e| req.printer.print_luexpr(&e, req.bits))
         .ok_or("Operations can't be used to rewrite the input".to_owned())
 }
 
 fn rewrite<T: UniformNum + std::fmt::Display>(
-    expr: &LUExpr<T>, ops: &[UExpr], randomize: bool
+    expr: &LUExpr<T>, ops: &[LUExpr<T>], randomize: bool
 ) -> Option<LUExpr<T>>
     where 
         T: UniformNum + std::fmt::Display,
@@ -108,10 +122,19 @@ fn rewrite<T: UniformNum + std::fmt::Display>(
     }
 
     // Put it in an LUExpr.
-    let v = solution.iter()
-        .zip(ops.iter())
-        .map(|(m, e)| (*m, e.clone()))
-        .collect();
+    // Currently, this simplifies the inner LUExprs into
+    // sums of UExprs, such that the result is an LUExpr.
+    // Once there is a more general Expr class, we need not do this.
+    let mut v = Vec::new();
+    for (c, o) in solution.iter().zip(ops.iter()) {
+        for (d, e) in &o.0 {
+            // Is the UExpr already in the linear combination?
+            match v.iter_mut().find(|(_, f)| f == e) {
+                Some((f, _)) => *f += *c * *d,
+                None => v.push((*c * *d, e.clone())),
+            }
+        }
+    }
 
     Some(LUExpr(v))
 }
@@ -125,8 +148,12 @@ pub struct ObfuscateReq {
     pub expr: String,
 
     /// The operations used for rewriting.
+    /// There is currently an issue with this because we verify the ops
+    /// with a certain bitness but the obfuscation may happen with another one.
+    /// This is only really a problem with big constants though, so not that
+    /// likely to happen to anyone.
     #[wasm_bindgen(skip)]
-    pub ops: Vec<UExpr>,
+    pub ops: Vec<String>,
 
     /// The integer width.
     pub bits: Bitness,
@@ -158,9 +185,7 @@ impl ObfuscateReq {
 
     #[wasm_bindgen]
     pub fn add_op(&mut self, op: String) {
-        let expr = UExpr::from_string(op)
-            .expect("Failed to add parse the operator");
-        self.ops.push(expr);
+        self.ops.push(op);
     }
 
     //#[wasm_bindgen(setter)]

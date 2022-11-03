@@ -9,7 +9,6 @@ pre[class*="language-"] {
 	color: black;
     background: #fbfbfb;
 	font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
-	font-size: 1em;
 	text-align: left;
 	white-space: pre;
 	word-spacing: normal;
@@ -48,6 +47,7 @@ code[class*="language-"]::selection, code[class*="language-"] ::selection {
 
 /* Code blocks */
 pre[class*="language-"] {
+	font-size: 1em;
 	margin: .5em 0;
 	overflow: auto;
     border-left: 4px solid var(--bs-primary);

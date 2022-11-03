@@ -169,14 +169,15 @@ export function obfuscate(req) {
 
 /**
 * @param {string} expr
+* @param {number} bits
 * @returns {string}
 */
-export function normalize_op(expr) {
+export function normalize_op(expr, bits) {
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
         const ptr0 = passStringToWasm0(expr, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        wasm.normalize_op(retptr, ptr0, len0);
+        wasm.normalize_op(retptr, ptr0, len0, bits);
         var r0 = getInt32Memory0()[retptr / 4 + 0];
         var r1 = getInt32Memory0()[retptr / 4 + 1];
         return getStringFromWasm0(r0, r1);
