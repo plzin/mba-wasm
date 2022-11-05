@@ -1,7 +1,7 @@
 # Mixed Boolean-Arithmetic Obfuscation
 The algorithm transforms expressions like `x+y` into things like this:
 ```c
--38*(x & y) - 83*(x ^ y) - 64*~(x ^ (y ^ z)) - 41*~x - 43*~y - 23*y - 44*z - 20*(y & z) - 21*(x | z) - 107*(~x & z) - 108*(y | ~z);
+-38*(x & y) - 83*(x ^ y) - 64*~(x ^ (y ^ z)) - 41*~x - 43*~y - 23*y - 44*z - 20*(y & z) - 21*(x | z) - 107*(~x & z) - 108*(y | ~z)
 ```
 These kind of expressions involving both normal arithmetic as well as boolean operations are known as mixed boolean-arithmetic expressions.
 This particular transformation is only valid when `x` and `y` (and `z`) are 8-bit integers and the usual rules of computer arithmetic apply (e.g. when adding/multiplying numbers and there is an overflow then the most significant bits that can not be represented are cut off).
