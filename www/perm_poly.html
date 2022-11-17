@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8" />
+        <title>Binary Permutation Polynomials</title>
+        <link rel="icon" href="data:,">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-OERcA2EqjJCMA+/3y+gxIOqMEjwtxJY7qPCqsdltbNJuaOe923+mo//f6V8Qbsw3" crossorigin="anonymous"></script>
+        <script type="module" src="perm_poly.js"></script>
+    </head>
+    <body>
+        <div class="container p-3" style="width: 37.5%">
+            <h2 class="mx-auto">Binary Permutation Polynomials</h2>
+            <input id="input" type="text" class="form-control mx-auto mb-2" placeholder="Input polynomial">
+            <div id="input-error" class="invalid-feedback"></div>
+            <div class="row mb-3">
+                <div class="col-sm-8">
+                    <div class="mb-2 mt-2">
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="bitness" id="bitness-8" value="U8" checked>
+                            <label class="form-check-label" for="bitness-8">8-bit</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="bitness" id="bitness-16" value="U16">
+                            <label class="form-check-label" for="bitness-16">16-bit</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="bitness" id="bitness-32" value="U32">
+                            <label class="form-check-label" for="bitness-32">32-bit</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="bitness" id="bitness-64" value="U64">
+                            <label class="form-check-label" for="bitness-64">64-bit</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="radio" name="bitness" id="bitness-128" value="U128">
+                            <label class="form-check-label" for="bitness-128">128-bit</label>
+                        </div>
+                    </div>
+                    <button id="invert-btn" type="button" class="btn btn-primary mb-3">Invert</button>
+                </div>
+                <div class="col-sm-4">
+                    <button id="rand-poly" type="button" class="btn btn-primary">Random polynomial</button>
+                    <div class="dropdown">
+                        Algorithm
+                        <button id="algorithm" class="btn btn-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
+                            Newton
+                        </button>
+                        <ul class="dropdown-menu w-100">
+                            <li><button name="algorithm" class="dropdown-item active" type="button">Newton</button></li>
+                            <li><button name="algorithm" class="dropdown-item" type="button">Fermat</button></li>
+                            <li><button name="algorithm" class="dropdown-item" type="button">Lagrange</button></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div id="output" style="overflow: scroll"></div>
+        </div>
+    </body>
+</html>

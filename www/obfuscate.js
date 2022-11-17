@@ -227,17 +227,9 @@ btn.onclick = () => {
             }
             output.appendChild(pg_btn)
         } else if (printer == Printer.Tex) {
-            MathJax.typesetClear()
-            MathJax.texReset()
-            MathJax.startup.output.clearCache()
+            MathJax.reset()
             output.appendChild(MathJax.tex2chtml(s, { scale: 1.3 }))
-
-            let sheet = document.getElementById('mathjax-styles')
-            if (sheet)
-                sheet.remove()
-            sheet = MathJax.chtmlStylesheet()
-            sheet.id = 'mathjax-styles'
-            document.head.appendChild(sheet)
+            MathJax.set_css('mathjax-styles')
         } else {
             output.textContent = s
         }

@@ -1,4 +1,4 @@
-use std::ops::{BitAnd, BitOr, BitXor, Not, IndexMut, Index};
+use std::ops::{BitAnd, BitOr, BitXor, Not, IndexMut, Index, Shl, ShlAssign};
 use std::fmt::{self, Formatter, Display};
 use num_traits::{Num, NumAssign, Unsigned, Signed, Zero, One};
 use crate::congruence_solver::ModN;
@@ -7,6 +7,8 @@ pub trait UniformNum: ModN
     + BitAnd<Self, Output = Self>
     + BitOr<Self, Output = Self>
     + BitXor<Self, Output = Self>
+    + Shl<usize>
+    + ShlAssign<usize>
     + Not<Output = Self> {}
 
 impl UniformNum for std::num::Wrapping<u8> {}

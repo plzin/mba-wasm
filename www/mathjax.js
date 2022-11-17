@@ -19,8 +19,11 @@ await new Promise((resolve) => {
     const req = new XMLHttpRequest()
     req.open('GET', 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js')
     req.addEventListener('load', () => {
+        // This stops styles for the (disabled) context menu from being loaded.
+        // const code = req.responseText.replace(',y.CssStyles.addInfoStyles(this.document.document),y.CssStyles.addMenuStyles(this.document.document)', '')
+        const code = req.responseText
         // Run the java script.
-        window.eval(req.responseText)
+        window.eval(code)
 
         // Associate a function with MathJax that resets all state.
         window.MathJax.reset = () => {
@@ -36,6 +39,10 @@ await new Promise((resolve) => {
                 sheet.remove()
             let css = window.MathJax.chtmlStylesheet()
             css.id = id
+            // Remove some annoying css that gives me warnings.
+            // css.innerText = css.innerText.replace(
+            // '\n_::-webkit-full-page-media, _:future, :root mjx-container {\n  will-change: opacity;\n}',
+            // '')
             document.head.appendChild(css)
         }
         resolve()

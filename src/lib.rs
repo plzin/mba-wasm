@@ -3,6 +3,7 @@
 
 mod vector;
 mod matrix;
+mod polynomial;
 mod congruence_solver;
 mod uniform_expr;
 mod printer;

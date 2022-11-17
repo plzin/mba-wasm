@@ -2,6 +2,7 @@
 
 mod obfuscate;
 mod linear_congruences;
+mod perm_poly;
 
 use wasm_bindgen::prelude::*;
 
