@@ -424,9 +424,5 @@ fn int_from_it<T: UniformNum>(
         s.push(it.next().unwrap());
     }
 
-    Some(
-        T::from_str_radix(&s, 10)
-            .ok()
-            .expect("Failed to parse number. This should not happen.")
-    )
+    T::from_str_radix(&s, 10).ok()
 }
