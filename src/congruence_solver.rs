@@ -1,31 +1,7 @@
 use std::fmt::Display;
-use num_traits::{NumAssign, Unsigned, Signed, One};
-
 use crate::matrix::Matrix;
 use crate::vector::Vector;
-
-pub trait ModN: NumAssign + Copy + Ord + Unsigned + Display {
-    // Should the number be printed as a negative number.
-    fn print_negative(self) -> bool {
-        true
-    }
-}
-
-macro_rules! impl_modn {
-    ($impl_ty:ty, $signed:ty) => {
-        impl ModN for std::num::Wrapping<$impl_ty> {
-            fn print_negative(self) -> bool {
-                self.0 > (1 << (<$impl_ty>::BITS - 1))
-            }
-        }
-    }
-}
-
-impl_modn!(u8, i8);
-impl_modn!(u16, i16);
-impl_modn!(u32, i32);
-impl_modn!(u64, i64);
-impl_modn!(u128, i128);
+use crate::numbers::UnsignedInt;
 
 pub struct AffineLattice<T> {
     pub offset: Vector<T>,
@@ -45,7 +21,7 @@ impl<T> AffineLattice<T> {
     }
 }
 
-impl<T: ModN> AffineLattice<T> {
+impl<T: UnsignedInt> AffineLattice<T> {
     pub fn to_tex(&self) -> String {
         let mut s = self.offset.to_tex();
         for (i, b) in self.basis.iter().enumerate() {
@@ -68,7 +44,7 @@ impl<T: ModN> AffineLattice<T> {
 /// Returns None if there is no solution.
 /// Otherwise returns all solutions in the form (c, d)
 /// where c+di are all solutions.
-pub fn solve_scalar_congruence<T: ModN>(
+pub fn solve_scalar_congruence<T: UnsignedInt>(
     a: T, b: T
 ) -> Option<(T, T)> {
     // Handle the case that a is zero, so we don't have to think about it.
@@ -116,7 +92,7 @@ pub fn solve_scalar_congruence<T: ModN>(
 }
 
 /// Solves a system of linear congruences Ax=b.
-pub fn solve_congruences<T: ModN>(
+pub fn solve_congruences<T: UnsignedInt>(
     mut a: Matrix<T>, b: &Vector<T>
 ) -> AffineLattice<T> {
     debug_assert!(a.rows == b.dim, "Invalid system of congruences");
@@ -184,7 +160,7 @@ pub fn solve_congruences<T: ModN>(
 
 /// Computes a diagonal matrix D in-place
 /// and returns matrices (S, T), such that D=SAT.
-pub fn diagonalize<T: ModN>(
+pub fn diagonalize<T: UnsignedInt>(
     a: &mut Matrix<T>
 ) -> (Matrix<T>, Matrix<T>) {
     // The matrices S and T are initialized to the identity.
@@ -276,4 +252,43 @@ pub fn diagonalize<T: ModN>(
     }
 
     return (s, t);
+}
+
+/// Solves ax=b mod n.
+/// Returns None if there is no solution.
+/// Otherwise returns all solutions in the form (c, d)
+/// where c+di are all solutions.
+pub fn solve_scalar_congruence_mod<T: UnsignedInt>(
+    a: T, b: T, n: T
+) -> Option<(T, T)> {
+    assert!(!n.is_zero());
+    // Handle the case that a is zero, so we don't have to think about it.
+    if a == T::zero() {
+        return (b == T::zero()).then_some((T::zero(), T::one()));
+    }
+
+    let (mut old_r, mut r) = (a, n);
+    let (mut old_t, mut t) = (T::zero(), T::one());
+    while !r.is_zero() {
+        let q = old_r / r;
+        (old_r, r) = (r, old_r - q * r);
+        (old_t, t) = (t, old_t - q * t);
+    }
+
+    // old_r is gcd(a, n).
+    let gcd = old_r;
+
+    // There is a solution iff gcd divides b, but we can also just check ax=b.
+    // old_t is the Bezout coefficient: a*old_t=gcd(a, n) mod n.
+    let x = b / gcd * old_t;
+    if a * x != b {
+        return None;
+    }
+
+    // The kernel is n / gcd which happens to be in t.
+    // If the kernel is greater than n/2 we can take -t
+    // which is smaller.
+    let kern = std::cmp::min(t, T::zero() - t);
+
+    Some((x, t))
 }

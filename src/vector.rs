@@ -4,7 +4,7 @@ use std::fmt::Write;
 
 use num_traits::Num;
 
-use crate::congruence_solver::ModN;
+use crate::numbers::UnsignedInt;
 
 #[derive(Clone)]
 pub struct Vector<T> {
@@ -135,7 +135,7 @@ impl<T: Num + Clone> Vector<T> {
     }
 }
 
-impl<T: ModN> Vector<T> {
+impl<T: UnsignedInt> Vector<T> {
     pub fn to_tex(&self) -> String {
         let mut s = "\\left[\\begin{array}{}".to_owned();
         for e in self.iter().cloned() {

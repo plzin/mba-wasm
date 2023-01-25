@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use std::ops::{Index, IndexMut, Mul};
 use std::fmt::Write;
 use num_traits::{Num, NumAssign};
-use crate::congruence_solver::ModN;
+use crate::numbers::UnsignedInt;
 use crate::vector::Vector;
 
 #[derive(Clone)]
@@ -205,7 +205,7 @@ impl<T: NumAssign + Copy> Matrix<T> {
     }
 }
 
-impl<T: ModN> Matrix<T> {
+impl<T: UnsignedInt> Matrix<T> {
     /// Convert the matrix into a latex renderable string.
     pub fn to_tex(&self) -> String {
         let mut s = "\\left[\\begin{array}{}".to_owned();

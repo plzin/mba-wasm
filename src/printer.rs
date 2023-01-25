@@ -2,7 +2,9 @@
 //! The implementation is a bit disgusting.
 
 use std::fmt::{self, Display, Write, Formatter};
-use crate::{uniform_expr::{UExpr, LUExpr, UniformNum}, pages::Bitness};
+use crate::uniform_expr::{UExpr, LUExpr};
+use crate::pages::Bitness;
+use crate::numbers::UniformNum;
 
 use wasm_bindgen::prelude::*;
 use num_traits::{Zero, One};

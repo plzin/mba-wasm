@@ -1,21 +1,7 @@
-use std::ops::{BitAnd, BitOr, BitXor, Not, IndexMut, Index, Shl, ShlAssign};
-use std::fmt::{self, Formatter, Display};
-use num_traits::{Num, NumAssign, Unsigned, Signed, Zero, One};
-use crate::congruence_solver::ModN;
+use std::{fmt::{self, Formatter, Display}, ops::{Index, IndexMut}};
+use num_traits::Num;
 
-pub trait UniformNum: ModN
-    + BitAnd<Self, Output = Self>
-    + BitOr<Self, Output = Self>
-    + BitXor<Self, Output = Self>
-    + Shl<usize>
-    + ShlAssign<usize>
-    + Not<Output = Self> {}
-
-impl UniformNum for std::num::Wrapping<u8> {}
-impl UniformNum for std::num::Wrapping<u16> {}
-impl UniformNum for std::num::Wrapping<u32> {}
-impl UniformNum for std::num::Wrapping<u64> {}
-impl UniformNum for std::num::Wrapping<u128> {}
+use crate::numbers::{UnsignedInt, UniformNum};
 
 /// LUExpr is short for "Linear combination of Uniform Expressions"
 /// These are the expressions for which rewrite rules can be efficiently
@@ -120,7 +106,7 @@ impl<T: UniformNum> LUExpr<T> {
             // If the next character is not a plus then we are done.
             match it.peek() {
                 // Next part of the linear combination.
-                Some('+') => it.next(), // Skip the +.
+                Some('+') => { neg = false; it.next() }, // Skip the +.
                 Some('-') => { neg = true; it.next() },
 
                 // We consumed the whole input so we're good.

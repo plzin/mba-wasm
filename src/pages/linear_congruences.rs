@@ -5,8 +5,9 @@ use crate::vector::Vector;
 use crate::matrix::Matrix;
 use super::{Bitness, bold, underbrace};
 use crate::congruence_solver::{
-    AffineLattice, ModN, diagonalize, solve_scalar_congruence
+    AffineLattice, diagonalize, solve_scalar_congruence
 };
+use crate::numbers::UnsignedInt;
 
 /// Stores the intermediate results during the computation of the solution.
 #[wasm_bindgen]
@@ -55,7 +56,7 @@ impl SolveTrace {
     }
 }
 
-fn solve_congruences_impl<T: ModN + Display>(
+fn solve_congruences_impl<T: UnsignedInt + Display>(
     a: Matrix<&str>, b: Vector<&str>
 ) -> Result<SolveTrace, String> {
     let a = a.try_map(|&e| T::from_str_radix(e, 10))

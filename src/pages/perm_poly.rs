@@ -10,7 +10,7 @@ use crate::congruence_solver;
 use crate::vector::Vector;
 use crate::matrix::Matrix;
 use crate::polynomial::Polynomial;
-use crate::uniform_expr::UniformNum;
+use crate::numbers::UniformNum;
 
 use super::Bitness;
 
@@ -144,15 +144,16 @@ fn invert_lagrange<T: UniformNum>(
     p: &Polynomial<T>, zi: &ZeroIdeal<T>
 ) -> Polynomial<T> {
     // Construct a system of linear congruences.
-    let d = zi.gen.last().unwrap().len() + 1;
+    let rows = zi.gen.last().unwrap().len();
+    let cols = zi.gen.last().unwrap().len();
 
     // Construct the Vandermonde matrix.
-    let mut a = Matrix::<T>::zero(d, d);
+    let mut a = Matrix::<T>::zero(rows, cols);
     let mut i = T::zero();
-    for r in 0..d {
+    for r in 0..rows {
         let mut j = T::one();
         let x = p.eval(i);
-        for c in 0..d {
+        for c in 0..cols {
             a[(r, c)] = j;
             j *= x;
         }
@@ -161,20 +162,23 @@ fn invert_lagrange<T: UniformNum>(
     }
 
     // Construct the vector of values of the polynomial.
-    let mut b = Vector::<T>::zero(d);
+    let mut b = Vector::<T>::zero(rows);
     let mut i = T::zero();
-    for r in 0..d {
+    for r in 0..rows {
         b[r] = i;
         i += T::one();
     }
 
     let l = congruence_solver::solve_congruences(a, &b);
     //crate::log(&format!("The kernel has dimension {}.", l.basis.len()));
-    //for b in &l.basis {
-    //    let k = Polynomial::from_coeffs(b.entries());
-    //    assert!(k.simplified(zi).is_zero(),
-    //        "Polynomial in the kernel is non-null.");
-    //}
+    for b in &l.basis {
+        let k = Polynomial::from_coeffs(b.entries());
+        //assert!(k.simplified(zi).is_zero(),
+        //    "Polynomial in the kernel is non-null.");
+        if !k.clone().simplified(zi).is_zero() {
+            crate::log(&format!("Polynomial in kernel is not null: {}", k));
+        }
+    }
 
     Polynomial::from_coeffs(l.offset.entries()).simplified(zi)
 }

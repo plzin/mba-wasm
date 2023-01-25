@@ -4,11 +4,12 @@ use std::num::Wrapping;
 use rand::distributions::{Standard, Distribution};
 use wasm_bindgen::prelude::*;
 use super::Bitness;
-use crate::congruence_solver::{ModN, solve_congruences};
+use crate::congruence_solver::{solve_congruences};
 use crate::matrix::Matrix;
 use crate::vector::Vector;
 use crate::printer::Printer;
-use crate::uniform_expr::{UniformNum, LUExpr, UExpr, Valuation};
+use crate::uniform_expr::{LUExpr, UExpr, Valuation};
+use crate::numbers::{UnsignedInt, UniformNum};
 
 #[wasm_bindgen]
 pub fn obfuscate(req: ObfuscateReq) -> Result<String, String> {
