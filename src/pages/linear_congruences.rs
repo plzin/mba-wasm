@@ -3,7 +3,7 @@ use std::fmt::Display;
 use std::num::Wrapping;
 use crate::vector::Vector;
 use crate::matrix::Matrix;
-use super::{Bitness, bold, underbrace};
+use super::{Width, bold, underbrace};
 use crate::congruence_solver::{
     AffineLattice, diagonalize, solve_scalar_congruence
 };
@@ -205,7 +205,7 @@ fn solve_congruences_impl<T: UnsignedInt + Display>(
 }
 
 #[wasm_bindgen]
-pub fn solve_congruences(matrix_str: String, bit: Bitness) -> Result<SolveTrace, String> {
+pub fn solve_congruences(matrix_str: String, bit: Width) -> Result<SolveTrace, String> {
     // The number of rows is the number of lines.
     let rows = matrix_str.lines().count();
     if rows == 0 {
@@ -247,10 +247,10 @@ pub fn solve_congruences(matrix_str: String, bit: Bitness) -> Result<SolveTrace,
     }
 
     match bit {
-        Bitness::U8 => solve_congruences_impl::<Wrapping<u8>>(a, b),
-        Bitness::U16 => solve_congruences_impl::<Wrapping<u16>>(a, b),
-        Bitness::U32 => solve_congruences_impl::<Wrapping<u32>>(a, b),
-        Bitness::U64 => solve_congruences_impl::<Wrapping<u64>>(a, b),
-        Bitness::U128 => solve_congruences_impl::<Wrapping<u128>>(a, b),
+        Width::U8 => solve_congruences_impl::<Wrapping<u8>>(a, b),
+        Width::U16 => solve_congruences_impl::<Wrapping<u16>>(a, b),
+        Width::U32 => solve_congruences_impl::<Wrapping<u32>>(a, b),
+        Width::U64 => solve_congruences_impl::<Wrapping<u64>>(a, b),
+        Width::U128 => solve_congruences_impl::<Wrapping<u128>>(a, b),
     }
 }

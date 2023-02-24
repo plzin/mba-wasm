@@ -8,7 +8,7 @@ use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug)]
-pub enum Bitness {
+pub enum Width {
     U8,
     U16,
     U32,

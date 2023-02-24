@@ -12,29 +12,29 @@ use crate::matrix::Matrix;
 use crate::polynomial::Polynomial;
 use crate::numbers::UniformNum;
 
-use super::Bitness;
+use super::Width;
 
 #[wasm_bindgen]
 pub fn invert_poly(
-    poly: String, bits: Bitness, alg: String
+    poly: String, bits: Width, alg: String
 ) -> Result<String, String> {
     match bits {
-        Bitness::U8 => invert_poly_impl::<Wrapping<u8>>(poly, alg),
-        Bitness::U16 => invert_poly_impl::<Wrapping<u16>>(poly, alg),
-        Bitness::U32 => invert_poly_impl::<Wrapping<u32>>(poly, alg),
-        Bitness::U64 => invert_poly_impl::<Wrapping<u64>>(poly, alg),
-        Bitness::U128 => invert_poly_impl::<Wrapping<u128>>(poly, alg),
+        Width::U8 => invert_poly_impl::<Wrapping<u8>>(poly, alg),
+        Width::U16 => invert_poly_impl::<Wrapping<u16>>(poly, alg),
+        Width::U32 => invert_poly_impl::<Wrapping<u32>>(poly, alg),
+        Width::U64 => invert_poly_impl::<Wrapping<u64>>(poly, alg),
+        Width::U128 => invert_poly_impl::<Wrapping<u128>>(poly, alg),
     }
 }
 
 #[wasm_bindgen]
-pub fn rand_poly(bits: Bitness) -> String {
+pub fn rand_poly(bits: Width) -> String {
     match bits {
-        Bitness::U8     => rand_poly_impl::<Wrapping<u8>>(),
-        Bitness::U16    => rand_poly_impl::<Wrapping<u16>>(),
-        Bitness::U32    => rand_poly_impl::<Wrapping<u32>>(),
-        Bitness::U64    => rand_poly_impl::<Wrapping<u64>>(),
-        Bitness::U128   => rand_poly_impl::<Wrapping<u128>>(),
+        Width::U8     => rand_poly_impl::<Wrapping<u8>>(),
+        Width::U16    => rand_poly_impl::<Wrapping<u16>>(),
+        Width::U32    => rand_poly_impl::<Wrapping<u32>>(),
+        Width::U64    => rand_poly_impl::<Wrapping<u64>>(),
+        Width::U128   => rand_poly_impl::<Wrapping<u128>>(),
     }
 }
 

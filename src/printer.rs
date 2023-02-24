@@ -3,7 +3,7 @@
 
 use std::fmt::{self, Display, Write, Formatter};
 use crate::uniform_expr::{UExpr, LUExpr};
-use crate::pages::Bitness;
+use crate::pages::Width;
 use crate::numbers::UniformNum;
 
 use wasm_bindgen::prelude::*;
@@ -13,6 +13,9 @@ use num_traits::{Zero, One};
 #[wasm_bindgen]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Printer {
+    /// Some default.
+    Default,
+
     /// Print a C function.
     C,
 
@@ -34,29 +37,23 @@ impl Printer {
         self.u(e).to_string()
     }
 
-    pub fn print_luexpr<T: UniformNum>(self, e: &LUExpr<T>, bits: Bitness) -> String {
+    pub fn print_luexpr<T: UniformNum>(self, e: &LUExpr<T>) -> String {
         let mut s = String::with_capacity(e.0.len() * 8);
         match self {
-            Printer::C => {
-                let ty = match bits {
-                    Bitness::U8 => "uint8_t",
-                    Bitness::U16 => "uint16_t",
-                    Bitness::U32 => "uint32_t",
-                    Bitness::U64 => "uint64_t",
-                    Bitness::U128 => "uint128_t",
+            Printer::C | Printer::Default => {
+                let ty = match std::mem::size_of::<T>() {
+                    1 => "uint8_t",
+                    2 => "uint16_t",
+                    4 => "uint32_t",
+                    8 => "uint64_t",
+                    16 => "uint128_t",
+                    _ => unreachable!(),
                 };
 
-                let mut vars = Vec::new();
-                e.vars(&mut vars);
-                vars.sort();
-                vars.dedup();
-                s += ty;
-                s += " f(";
-                for v in vars {
-                    s += ty;
-                    s += " ";
-                    s.push(v);
-                    s += ", ";
+                let vars = e.vars();
+                write!(&mut s, "{} f(", ty);
+                for v in &vars {
+                    write!(&mut s, "{} {}, ", ty, v);
                 }
 
                 // Remove the last ', '.
@@ -67,24 +64,19 @@ impl Printer {
                 s += ";\n}"
             },
             Printer::Rust => {
-                let (ty, const_suffix) = match bits {
-                    Bitness::U8     => ("Wrapping<u8>", "u8"),
-                    Bitness::U16    => ("Wrapping<u16>", "u16"),
-                    Bitness::U32    => ("Wrapping<u32>", "u32"),
-                    Bitness::U64    => ("Wrapping<u64>", "u64"),
-                    Bitness::U128   => ("Wrapping<u128>", "u128"),
+                let (ty, const_suffix) = match std::mem::size_of::<T>() {
+                    1   => ("Wrapping<u8>", "u8"),
+                    2   => ("Wrapping<u16>", "u16"),
+                    4   => ("Wrapping<u32>", "u32"),
+                    8   => ("Wrapping<u64>", "u64"),
+                    16  => ("Wrapping<u128>", "u128"),
+                    _ => unreachable!(),
                 };
 
-                let mut vars = Vec::new();
-                e.vars(&mut vars);
-                vars.sort();
-                vars.dedup();
+                let vars = e.vars();
                 s += "fn f(";
-                for v in vars {
-                    s.push(v);
-                    s += ": ";
-                    s += ty;
-                    s += ", ";
+                for v in &vars {
+                    write!(&mut s, "{}: {},", v, ty);
                 }
 
                 // Remove the last ', '.
@@ -137,7 +129,7 @@ impl Printer {
                 }
 
                 let op = match self {
-                    Self::C | Self::Rust => "*",
+                    Self::Default | Self::C | Self::Rust => "*",
                     Self::Tex => "\\cdot ",
                 };
 
@@ -203,12 +195,12 @@ impl<'a> Display for UExprHelper<'a> {
         use Printer::*;
         match self.e {
             Ones => f.write_str("-1"),
-            Var(c) => f.write_char(*c),
+            Var(c) => f.write_str(c),
             Not(i) => {
                 let i = self.u(i);
                 match self.p {
-                    C if i.e.is_unary() => write!(f, "~{}", i),
-                    C => write!(f, "~({})", i),
+                    Default | C if i.e.is_unary() => write!(f, "~{}", i),
+                    Default | C => write!(f, "~({})", i),
                     Rust if i.e.is_unary() => write!(f, "!{}", i),
                     Rust => write!(f, "!({})", i),
                     Tex => write!(f, "\\overline{{{}}}", i),
@@ -216,19 +208,19 @@ impl<'a> Display for UExprHelper<'a> {
             },
             And(l, r) => {
                 match self.p {
-                    C | Rust => self.write_safe(l, r, "&", f),
+                    Default | C | Rust => self.write_safe(l, r, "&", f),
                     Tex => self.write_safe(l, r, "\\land", f),
                 }
             },
             Or(l, r) => {
                 match self.p {
-                    C | Rust => self.write_safe(l, r, "|", f),
+                    Default | C | Rust => self.write_safe(l, r, "|", f),
                     Tex => self.write_safe(l, r, "\\lor", f),
                 }
             },
             Xor(l, r) => {
                 match self.p {
-                    C | Rust => self.write_safe(l, r, "^", f),
+                    Default | C | Rust => self.write_safe(l, r, "^", f),
                     Tex => self.write_safe(l, r, "\\oplus", f),
                 }
             }

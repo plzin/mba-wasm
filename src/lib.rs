@@ -6,6 +6,7 @@ mod matrix;
 mod numbers;
 mod polynomial;
 mod congruence_solver;
+mod expr;
 mod uniform_expr;
 mod printer;
 mod pages;

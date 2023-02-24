@@ -1,7 +1,11 @@
-use std::{fmt::{self, Formatter, Display}, ops::{Index, IndexMut}};
+use std::collections::BTreeSet;
+use std::fmt::{self, Formatter, Display};
+use std::ops::{Index, IndexMut};
+use std::rc::Rc;
 use num_traits::Num;
 
-use crate::numbers::{UnsignedInt, UniformNum};
+use crate::expr::Expr;
+use crate::numbers::{UnsignedInt, UniformNum, int_from_it};
 
 /// LUExpr is short for "Linear combination of Uniform Expressions"
 /// These are the expressions for which rewrite rules can be efficiently
@@ -15,16 +19,27 @@ impl<T: UniformNum> LUExpr<T> {
         Self(vec![(T::zero() - c, UExpr::Ones)])
     }
 
+    /// Create a uniform expression.
+    pub fn from_uexpr(u: UExpr) -> Self {
+        Self(vec![(T::one(), u)])
+    }
+
     /// Creates an expression that equals a variable.
-    pub fn var(name: char) -> Self {
+    pub fn var(name: String) -> Self {
         Self(vec![(T::one(), UExpr::Var(name))])
     }
 
     /// Returns all variables in the expression.
     /// This will include duplicates.
-    pub fn vars(&self, v: &mut Vec<char>) {
+    pub fn vars(&self) -> Vec<String> {
+        let mut v = BTreeSet::new();
+        self.vars_impl(&mut v);
+        v.into_iter().collect()
+    }
+
+    pub(crate) fn vars_impl(&self, v: &mut BTreeSet<String>) {
         for (_, e) in &self.0 {
-            e.vars(v);
+            e.vars_impl(v);
         }
     }
 
@@ -117,6 +132,34 @@ impl<T: UniformNum> LUExpr<T> {
             };
         }
     }
+
+    pub fn to_expr(&self) -> Expr<T> {
+        let mut it = self.0.iter()
+            .filter(|(f, u)| !f.is_zero());
+
+        // If the linear combination is empty,
+        // then it always evaluates to 0.
+        let Some((f, u)) = it.next() else {
+            return Expr::zero()
+        };
+
+        // Lambda to convert the `coefficient * uexpr` into an expr.
+        let term = |f: T, u: &UExpr| {
+            if f.is_one() {
+                u.to_expr()
+            } else {
+                Expr::Mul(Rc::new(Expr::Const(f)), Rc::new(u.to_expr()))
+            }
+        };
+
+        // Iterate over the linear combination and update e.
+        let mut e = term(*f, u);
+        for (f, u) in it {
+            e = Expr::Add(Rc::new(e), Rc::new(term(*f, u)));
+        }
+
+        e
+    }
 }
 
 impl<T: UniformNum> From<UExpr> for LUExpr<T> {
@@ -174,7 +217,7 @@ impl<T: UniformNum> Display for LUExpr<T> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum UExpr {
     Ones,
-    Var(char),
+    Var(String),
     Not(Box<Self>),
     And(Box<Self>, Box<Self>),
     Or(Box<Self>, Box<Self>),
@@ -182,7 +225,7 @@ pub enum UExpr {
 }
 
 impl UExpr {
-    pub fn var(c: char) -> Self {
+    pub fn var(c: String) -> Self {
         Self::Var(c)
     }
 
@@ -213,15 +256,22 @@ impl UExpr {
 
     /// Returns all variables in the expression.
     /// This will include duplicates.
-    pub fn vars(&self, v: &mut Vec<char>) {
+    pub fn vars(&self) -> Vec<String> {
+        let mut v = BTreeSet::new();
+        self.vars_impl(&mut v);
+        v.into_iter().collect()
+    }
+
+    // Should really be `pub(self)`.
+    pub(crate) fn vars_impl(&self, v: &mut BTreeSet<String>) {
         use UExpr::*;
         match self {
             Ones            => {},
-            Var(c)          => v.push(*c),
-            Not(e)          => e.vars(v),
-            And(e1, e2)     => { e1.vars(v); e2.vars(v) },
-            Or(e1, e2)      => { e1.vars(v); e2.vars(v) },
-            Xor(e1, e2)     => { e1.vars(v); e2.vars(v) },
+            Var(c)          => if !v.contains(c) { v.insert(c.clone()); },
+            Not(e)          => e.vars_impl(v),
+            And(e1, e2)     => { e1.vars_impl(v); e2.vars_impl(v) },
+            Or(e1, e2)      => { e1.vars_impl(v); e2.vars_impl(v) },
+            Xor(e1, e2)     => { e1.vars_impl(v); e2.vars_impl(v) },
         }
     }
 
@@ -230,7 +280,7 @@ impl UExpr {
         use UExpr::*;
         match self {
             Ones            => T::zero() - T::one(), // -1
-            Var(c)          => v[*c],
+            Var(c)          => v[c],
             Not(e)          => !e.eval(v),
             And(e1, e2)     => e1.eval(v) & e2.eval(v),
             Or(e1, e2)      => e1.eval(v) | e2.eval(v),
@@ -239,11 +289,11 @@ impl UExpr {
     }
 
     /// Rename a variable.
-    pub fn rename_var(&mut self, old: char, new: char) {
+    pub fn rename_var(&mut self, old: &str, new: &str) {
         use UExpr::*;
         match self {
             Ones        => (),
-            Var(v)      => if *v == old { *v = new },
+            Var(v)      => if v == old { v.clear(); v.push_str(new) },
             Not(e)      => e.rename_var(old, new),
             And(l, r)   => { l.rename_var(old, new); r.rename_var(old, new) },
             Or(l, r)    => { l.rename_var(old, new); r.rename_var(old, new) },
@@ -298,7 +348,21 @@ impl UExpr {
             Not(Box::new(e))
         } else if c.is_alphabetic() {
             it.next();
-            Var(c)
+            let mut var = String::from(c);
+            loop {
+                let Some(c) = it.peek() else {
+                    break
+                };
+
+                if !c.is_alphanumeric() {
+                    break
+                }
+
+                var.push(*c);
+                it.next();
+            }
+            
+            Var(var)
         } else if c == '-' {
             it.next();
             // Parse a -1.
@@ -341,6 +405,17 @@ impl UExpr {
             };
         }
     }
+
+    pub fn to_expr<T: UniformNum>(&self) -> Expr<T> {
+        match self {
+            UExpr::Ones => Expr::Const(T::zero() - T::one()),
+            UExpr::Var(v) => Expr::Var(v.clone()),
+            UExpr::Not(e) => Expr::Not(Rc::new(e.to_expr::<T>())),
+            UExpr::And(l, r) => Expr::And(Rc::new(l.to_expr::<T>()), Rc::new(r.to_expr::<T>())),
+            UExpr::Or(l, r) => Expr::Or(Rc::new(l.to_expr::<T>()), Rc::new(r.to_expr::<T>())),
+            UExpr::Xor(l, r) => Expr::Xor(Rc::new(l.to_expr::<T>()), Rc::new(r.to_expr::<T>())),
+        }
+    }
 }
 
 impl std::fmt::Display for UExpr {
@@ -368,47 +443,34 @@ pub struct Valuation<T> {
     /// The key value pairs are stored as a Vector
     /// because I doubt a hashmap/tree would be faster
     /// when there are so few variables.
-    vals: Vec<(char, T)>,
+    vals: Vec<(String, T)>,
 }
 
 impl<T: Num> Valuation<T> {
     /// Initializes a valuation from a list of variables
     /// each of which will be Initialized to 0.
-    pub fn zero(vars: &Vec<char>) -> Self {
-        let vals = vars.iter()
-            .map(|c| (*c, T::zero()))
+    pub fn zero(vars: Vec<String>) -> Self {
+        let vals = vars.into_iter()
+            .map(|c| (c, T::zero()))
             .collect();
 
         Self { vals }
     }
 }
 
-impl<T> Index<char> for Valuation<T> {
+impl<T> Index<&str> for Valuation<T> {
     type Output = T;
-    fn index(&self, index: char) -> &Self::Output {
+    fn index(&self, index: &str) -> &Self::Output {
         &self.vals.iter()
             .find(|(name, _)| *name == index)
             .unwrap().1
     }
 }
 
-impl<T> IndexMut<char> for Valuation<T> {
-    fn index_mut(&mut self, index: char) -> &mut Self::Output {
+impl<T> IndexMut<&str> for Valuation<T> {
+    fn index_mut(&mut self, index: &str) -> &mut Self::Output {
         &mut self.vals.iter_mut()
             .find(|(name, _)| *name == index)
             .unwrap().1
     }
-}
-
-fn int_from_it<T: UniformNum>(
-    it: &mut std::iter::Peekable<std::str::Chars>
-) -> Option<T> {
-    assert!(it.peek().map_or(false, |c| c.is_ascii_digit()));
-    let mut s = String::new();
-
-    while it.peek().map_or(false, char::is_ascii_digit) {
-        s.push(it.next().unwrap());
-    }
-
-    T::from_str_radix(&s, 10).ok()
 }

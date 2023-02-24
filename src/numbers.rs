@@ -11,10 +11,49 @@ use num_traits::{Num, NumAssign, Unsigned, Signed, Zero, One};
 /// The integers mod n.
 /// Representatives in the range 0..n are stored.
 pub trait UnsignedInt: NumAssign + Copy + Ord + Unsigned + Display {
-    // Should the number be printed as a negative number.
+    /// Should the number be printed as a negative number.
     fn print_negative(self) -> bool {
         false
     }
+
+    /// Fast conversion from u8.
+    fn from_u8(v: u8) -> Self;
+}
+
+/// Parses an integer in base ten from the iterator.
+pub(crate) fn int_from_it<T: UnsignedInt>(
+    it: &mut std::iter::Peekable<std::str::Chars>
+) -> Option<T> {
+    let neg = *it.peek()? == '-';
+    if neg {
+        it.next();
+    }
+
+    // Is the character an ascii digit?
+    if !it.peek().map_or(false, |c| c.is_ascii_digit()) {
+        return None;
+    }
+
+    let ten = T::from_u8(10);
+
+    // Parse the number.
+    let mut n = T::zero();
+    loop {
+        // Is this still a digit?
+        let Some(d) = it.peek().and_then(|c| c.to_digit(10)) else {
+            break
+        };
+
+        n *= ten;
+        n += T::from_u8(d as u8);
+        it.next();
+    }
+
+    if neg {
+        n = T::zero() - n;        
+    }
+
+    Some(n)
 }
 
 /// N-bit integers basically.
@@ -37,6 +76,10 @@ macro_rules! impl_uint {
         impl UnsignedInt for std::num::Wrapping<$impl_ty> {
             fn print_negative(self) -> bool {
                 self.0 > (1 << (<$impl_ty>::BITS - 1))
+            }
+
+            fn from_u8(v: u8) -> Self {
+                std::num::Wrapping(v as $impl_ty)
             }
         }
     }
@@ -62,6 +105,12 @@ impl<const N: usize> Bits<N> {
     }
 }
 
+impl<const N: usize> From<u8> for Bits<N> {
+    fn from(value: u8) -> Self {
+        Self(std::num::Wrapping(value as u64))
+    }
+}
+
 impl<const N: usize> Num for Bits<N> {
     type FromStrRadixErr = std::num::ParseIntError;
     fn from_str_radix(str: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
@@ -74,6 +123,10 @@ impl<const N: usize> NumAssign for Bits<N> {}
 impl<const N: usize> UnsignedInt for Bits<N> {
     fn print_negative(self) -> bool {
         self.0.0 > (1 << (N - 1))
+    }
+
+    fn from_u8(v: u8) -> Self {
+        Self(std::num::Wrapping(v as u64))
     }
 }
 

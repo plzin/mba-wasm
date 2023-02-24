@@ -1,26 +1,6 @@
 
 let wasm;
 
-const heap = new Array(32).fill(undefined);
-
-heap.push(undefined, null, true, false);
-
-function getObject(idx) { return heap[idx]; }
-
-let heap_next = heap.length;
-
-function dropObject(idx) {
-    if (idx < 36) return;
-    heap[idx] = heap_next;
-    heap_next = idx;
-}
-
-function takeObject(idx) {
-    const ret = getObject(idx);
-    dropObject(idx);
-    return ret;
-}
-
 const cachedTextDecoder = new TextDecoder('utf-8', { ignoreBOM: true, fatal: true });
 
 cachedTextDecoder.decode();
@@ -38,6 +18,12 @@ function getStringFromWasm0(ptr, len) {
     return cachedTextDecoder.decode(getUint8Memory0().subarray(ptr, ptr + len));
 }
 
+const heap = new Array(32).fill(undefined);
+
+heap.push(undefined, null, true, false);
+
+let heap_next = heap.length;
+
 function addHeapObject(obj) {
     if (heap_next === heap.length) heap.push(heap.length + 1);
     const idx = heap_next;
@@ -45,6 +31,20 @@ function addHeapObject(obj) {
 
     heap[idx] = obj;
     return idx;
+}
+
+function getObject(idx) { return heap[idx]; }
+
+function dropObject(idx) {
+    if (idx < 36) return;
+    heap[idx] = heap_next;
+    heap_next = idx;
+}
+
+function takeObject(idx) {
+    const ret = getObject(idx);
+    dropObject(idx);
+    return ret;
 }
 
 let WASM_VECTOR_LEN = 0;
@@ -159,25 +159,31 @@ export function rand_poly(bits) {
 }
 
 /**
-* @param {string} matrix_str
-* @param {number} bit
-* @returns {SolveTrace}
+* @param {string} expr
+* @param {number} width
+* @param {number} out
+* @returns {string}
 */
-export function solve_congruences(matrix_str, bit) {
+export function obfuscate(expr, width, out) {
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(matrix_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const ptr0 = passStringToWasm0(expr, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        wasm.solve_congruences(retptr, ptr0, len0, bit);
+        wasm.obfuscate(retptr, ptr0, len0, width, out);
         var r0 = getInt32Memory0()[retptr / 4 + 0];
         var r1 = getInt32Memory0()[retptr / 4 + 1];
         var r2 = getInt32Memory0()[retptr / 4 + 2];
-        if (r2) {
-            throw takeObject(r1);
+        var r3 = getInt32Memory0()[retptr / 4 + 3];
+        var ptr1 = r0;
+        var len1 = r1;
+        if (r3) {
+            ptr1 = 0; len1 = 0;
+            throw takeObject(r2);
         }
-        return SolveTrace.__wrap(r0);
+        return getStringFromWasm0(ptr1, len1);
     } finally {
         wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_free(ptr1, len1);
     }
 }
 
@@ -188,16 +194,16 @@ function _assertClass(instance, klass) {
     return instance.ptr;
 }
 /**
-* @param {ObfuscateReq} req
+* @param {ObfLinReq} req
 * @returns {string}
 */
-export function obfuscate(req) {
+export function obfuscate_linear(req) {
     try {
         const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        _assertClass(req, ObfuscateReq);
+        _assertClass(req, ObfLinReq);
         var ptr0 = req.ptr;
         req.ptr = 0;
-        wasm.obfuscate(retptr, ptr0);
+        wasm.obfuscate_linear(retptr, ptr0);
         var r0 = getInt32Memory0()[retptr / 4 + 0];
         var r1 = getInt32Memory0()[retptr / 4 + 1];
         var r2 = getInt32Memory0()[retptr / 4 + 2];
@@ -235,6 +241,29 @@ export function normalize_op(expr, bits) {
     }
 }
 
+/**
+* @param {string} matrix_str
+* @param {number} bit
+* @returns {SolveTrace}
+*/
+export function solve_congruences(matrix_str, bit) {
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        const ptr0 = passStringToWasm0(matrix_str, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.solve_congruences(retptr, ptr0, len0, bit);
+        var r0 = getInt32Memory0()[retptr / 4 + 0];
+        var r1 = getInt32Memory0()[retptr / 4 + 1];
+        var r2 = getInt32Memory0()[retptr / 4 + 2];
+        if (r2) {
+            throw takeObject(r1);
+        }
+        return SolveTrace.__wrap(r0);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+    }
+}
+
 function isLikeNone(x) {
     return x === undefined || x === null;
 }
@@ -251,31 +280,35 @@ function getArrayU8FromWasm0(ptr, len) {
     return getUint8Memory0().subarray(ptr / 1, ptr / 1 + len);
 }
 /**
-*/
-export const Bitness = Object.freeze({ U8:0,"0":"U8",U16:1,"1":"U16",U32:2,"2":"U32",U64:3,"3":"U64",U128:4,"4":"U128", });
-/**
 * Determines how the result will be printed.
 */
 export const Printer = Object.freeze({
 /**
+* Some default.
+*/
+Default:0,"0":"Default",
+/**
 * Print a C function.
 */
-C:0,"0":"C",
+C:1,"1":"C",
 /**
 * Print a rust function.
 */
-Rust:1,"1":"Rust",
+Rust:2,"2":"Rust",
 /**
 * Tex expression.
 */
-Tex:2,"2":"Tex", });
+Tex:3,"3":"Tex", });
+/**
+*/
+export const Width = Object.freeze({ U8:0,"0":"U8",U16:1,"1":"U16",U32:2,"2":"U32",U64:3,"3":"U64",U128:4,"4":"U128", });
 /**
 * Obfuscation settings.
 */
-export class ObfuscateReq {
+export class ObfLinReq {
 
     static __wrap(ptr) {
-        const obj = Object.create(ObfuscateReq.prototype);
+        const obj = Object.create(ObfLinReq.prototype);
         obj.ptr = ptr;
 
         return obj;
@@ -290,14 +323,14 @@ export class ObfuscateReq {
 
     free() {
         const ptr = this.__destroy_into_raw();
-        wasm.__wbg_obfuscatereq_free(ptr);
+        wasm.__wbg_obflinreq_free(ptr);
     }
     /**
     * The integer width.
     * @returns {number}
     */
     get bits() {
-        const ret = wasm.__wbg_get_obfuscatereq_bits(this.ptr);
+        const ret = wasm.__wbg_get_obflinreq_bits(this.ptr);
         return ret >>> 0;
     }
     /**
@@ -305,14 +338,14 @@ export class ObfuscateReq {
     * @param {number} arg0
     */
     set bits(arg0) {
-        wasm.__wbg_set_obfuscatereq_bits(this.ptr, arg0);
+        wasm.__wbg_set_obflinreq_bits(this.ptr, arg0);
     }
     /**
     * Should the solution be randomized.
     * @returns {boolean}
     */
     get randomize() {
-        const ret = wasm.__wbg_get_obfuscatereq_randomize(this.ptr);
+        const ret = wasm.__wbg_get_obflinreq_randomize(this.ptr);
         return ret !== 0;
     }
     /**
@@ -320,14 +353,14 @@ export class ObfuscateReq {
     * @param {boolean} arg0
     */
     set randomize(arg0) {
-        wasm.__wbg_set_obfuscatereq_randomize(this.ptr, arg0);
+        wasm.__wbg_set_obflinreq_randomize(this.ptr, arg0);
     }
     /**
     * How to print the result.
     * @returns {number}
     */
     get printer() {
-        const ret = wasm.__wbg_get_obfuscatereq_printer(this.ptr);
+        const ret = wasm.__wbg_get_obflinreq_printer(this.ptr);
         return ret >>> 0;
     }
     /**
@@ -335,13 +368,13 @@ export class ObfuscateReq {
     * @param {number} arg0
     */
     set printer(arg0) {
-        wasm.__wbg_set_obfuscatereq_printer(this.ptr, arg0);
+        wasm.__wbg_set_obflinreq_printer(this.ptr, arg0);
     }
     /**
     */
     constructor() {
-        const ret = wasm.obfuscatereq_new();
-        return ObfuscateReq.__wrap(ret);
+        const ret = wasm.obflinreq_new();
+        return ObfLinReq.__wrap(ret);
     }
     /**
     * @param {string} expr
@@ -349,7 +382,7 @@ export class ObfuscateReq {
     set expr(expr) {
         const ptr0 = passStringToWasm0(expr, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        wasm.obfuscatereq_set_expr(this.ptr, ptr0, len0);
+        wasm.obflinreq_set_expr(this.ptr, ptr0, len0);
     }
     /**
     * @param {string} op
@@ -357,7 +390,7 @@ export class ObfuscateReq {
     add_op(op) {
         const ptr0 = passStringToWasm0(op, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
-        wasm.obfuscatereq_add_op(this.ptr, ptr0, len0);
+        wasm.obflinreq_add_op(this.ptr, ptr0, len0);
     }
 }
 /**
@@ -494,15 +527,15 @@ async function load(module, imports) {
 function getImports() {
     const imports = {};
     imports.wbg = {};
+    imports.wbg.__wbindgen_string_new = function(arg0, arg1) {
+        const ret = getStringFromWasm0(arg0, arg1);
+        return addHeapObject(ret);
+    };
     imports.wbg.__wbg_log_d152fc6b968fc15c = function(arg0, arg1) {
         console.log(getStringFromWasm0(arg0, arg1));
     };
     imports.wbg.__wbindgen_object_drop_ref = function(arg0) {
         takeObject(arg0);
-    };
-    imports.wbg.__wbindgen_string_new = function(arg0, arg1) {
-        const ret = getStringFromWasm0(arg0, arg1);
-        return addHeapObject(ret);
     };
     imports.wbg.__wbg_now_8172cd917e5eda6b = function(arg0) {
         const ret = getObject(arg0).now();

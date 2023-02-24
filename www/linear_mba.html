@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Mixed Boolean-Arithmetic</title>
+        <title>Linear Mixed Boolean-Arithmetic</title>
         <link rel="icon" href="data:,">
         <style>
             .custom-popover {
@@ -18,11 +18,11 @@
         <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-c.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-cpp.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-rust.min.js"></script>
-        <script type="module" src="obfuscate.js"></script>
+        <script type="module" src="linear_mba.js"></script>
     </head>
     <body class="container p-3 mx-auto" style="width: 37.5%">
         <h2 class="mx-auto">Mixed Boolean-Arithmetic Obfuscation</h2>
-        <input id="input" type="text" class="form-control mx-auto" placeholder="Input expression" style="font-family: monospace;">
+        <input id="input" type="text" class="form-control mx-auto" placeholder="Input expression">
         <div id="input-error" class="invalid-feedback"></div>
         <div class="mb-2 mt-2">
             <div class="form-check form-check-inline">
@@ -46,15 +46,36 @@
                 <label class="form-check-label" for="bitness-128">128-bit</label>
             </div>
         </div>
-        <div class="dropdown mb-3">
-            Output type
-            <button id="output-type" class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                C
-            </button>
-            <ul class="dropdown-menu">
-                <li><button name="output-type" class="dropdown-item active" type="button">C</button></li>
-                <li><button name="output-type" class="dropdown-item" type="button">Rust</button></li>
-            </ul>
+        <div class="row mb-3">
+            <div class="col-sm-8">
+                <ul id="ops" class="list-group">
+                    <li class="list-group-item active fw-bold">Rewrite operations:</li>
+                    <li id="op-add-item" class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <input id="op-input" type="text" class="form-control me-auto" placeholder="Rewrite operation">
+                            <button id="op-add" type="button" class="btn btn-primary ms-3">Add</button>
+                        </div>
+                        <div id="op-error" class="invalid-feedback">Invalid operation</div>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-sm-4">
+                <div id="randomize-div" class="form-check mb-1">
+                    <input id="random" class="form-check-input" type="checkbox" checked>
+                    <label class="form-checklabel" for="random">Random solution</label>
+                </div>
+                <div class="dropdown">
+                    Output type
+                    <button id="output-type" class="btn btn-secondary dropdown-toggle w-100" type="button" data-bs-toggle="dropdown">
+                        C
+                    </button>
+                    <ul class="dropdown-menu w-100">
+                        <li><button name="output-type" class="dropdown-item active" type="button">C</button></li>
+                        <li><button name="output-type" class="dropdown-item" type="button">Rust</button></li>
+                        <li><button name="output-type" class="dropdown-item" type="button">Tex</button></li>
+                    </ul>
+                </div>
+            </div>
         </div>
         <button id="obfuscate-btn" type="button" class="btn btn-primary mb-3">Obfuscate</button>
         <div id="output" style="overflow:scroll"></div>

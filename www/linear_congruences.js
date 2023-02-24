@@ -1,5 +1,5 @@
 import './mathjax.js'
-import { solve_congruences, Bitness } from './wasm.js';
+import { solve_congruences, Width } from './wasm.js';
 
 // Global tex render options.
 let tex_options = { scale: 1.2 }
@@ -60,7 +60,7 @@ b.onclick = () => {
             math.appendChild(MathJax.tex2chtml(str, tex_options))
         }
 
-        let s = solve_congruences(mat.value, Bitness[mod.value])
+        let s = solve_congruences(mat.value, Width[mod.value])
 
         MathJax.reset()
         math.replaceChildren()

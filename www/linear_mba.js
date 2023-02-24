@@ -1,9 +1,15 @@
-import { obfuscate, Width, Printer } from './wasm.js';
+import { obfuscate_linear, normalize_op, ObfLinReq, Width, Printer } from './wasm.js';
+import './mathjax.js'
 
 const btn = document.getElementById('obfuscate-btn')
 const input = document.getElementById('input')
 const output = document.getElementById('output')
 const input_error = document.getElementById('input-error')
+const ops = document.getElementById('ops')
+const op_input = document.getElementById('op-input')
+const op_add = document.getElementById('op-add')
+const op_add_item = document.getElementById('op-add-item')
+const randomize = document.getElementById('random')
 const output_type = document.getElementById('output-type')
 const output_types = document.getElementsByName('output-type')
 
@@ -35,6 +41,34 @@ This limitation will be removed in the future and more general expression will b
 More commonly, you will probably want to use things like ${hi_in('x + y')}, ${hi_in('x - y')}.
 <br>
 Constants (${hi_in('1312')}) are also allowed.
+`
+})
+
+// Popover for the rewrite operation input.
+new bootstrap.Popover(op_input, {
+    ...popover_config,
+    title: 'Operations used during rewriting',
+    content:
+`
+These are the operations that are allowed to appear in the resulting linear combination.
+Only linear combinations of boolean operations are allowed.
+`
+})
+
+// Popover for the 'random solution' button.
+new bootstrap.Popover(document.getElementById('randomize-div'), {
+    ...popover_config,
+    title: `Generate a random output`,
+    content:
+`
+Rewriting the input using the operations involves solving a 'System of Linear Congruences',
+which is very similar to 'Systems of Linear Equations' that are known from Linear Algebra.
+In the same way the solution also is a particular solution plus any vector in the kernel. 
+If randomize solution is disabled, the particular solution that the algorithm returns is used.
+Since the algorithm is deterministic it will always be the same.
+Note that changing the order of the rewrite operations can change the solution.
+To get a canonical solution, we could define some sort of norm and try to find the smallest
+solution according to that norm, but this is future work.
 `
 })
 
@@ -84,18 +118,76 @@ for (const li of output_types) {
     }
 }
 
+// Remove an operation from the op list.
+const remove_op = (e) => {
+    e.target.parentNode.remove()
+}
+
+// Add an operation to the list of operations used for rewriting.
+const add_op = () => {
+    // Normalize the operation and make sure it is valid.
+    const bits = Width[document.querySelector('input[name=bitness]:checked').value]
+    const s = normalize_op(op_input.value, bits)
+    
+    // If it isn't, indicate that.
+    if (s === '') {
+        op_input.classList.add('is-invalid')
+        op_input.parentElement.classList.add('is-invalid')
+        return
+    }
+
+    // Remove potential prior indication.
+    op_input.classList.remove('is-invalid')
+    op_input.parentElement.classList.remove('is-invalid')
+
+    // Create a new list item.
+    const list_item = document.createElement('li')
+    list_item.classList.add('list-group-item', 'd-flex', 'justify-content-between', 'align-items-start')
+
+    const op_text = document.createElement('div')
+    op_text.classList.add('ms-2', 'me-auto')
+    op_text.textContent = s
+    op_text.setAttribute('name', 'op-value')
+    list_item.appendChild(op_text)
+
+    const remove_btn = document.createElement('button')
+    remove_btn.classList.add('btn-close')
+    remove_btn.type = 'button'
+    remove_btn.onclick = remove_op
+    list_item.appendChild(remove_btn)
+
+    // Insert it before the last item, which is the one
+    // that contains the textfield and button.
+    ops.insertBefore(list_item, op_add_item)
+}
+
+op_add.onclick = add_op
+op_input.onkeydown = (e) => {
+    if (e.key == "Enter")
+        add_op()
+}
+
 // Do the obfuscation.
 btn.onclick = () => {
-    const expr = input.value
+    let req = new ObfLinReq()
+    req.expr = input.value
+    req.randomize = randomize.checked
 
     const printer = Printer[output_type.innerText.trim()]
+    req.printer = printer
+
+    // Collect the rewrite ops.
+    for (const e of document.getElementsByName('op-value')) {
+        req.add_op(e.innerText)
+    }
 
     // Get the number of bits we are obfuscating for.
     const bits = Width[document.querySelector('input[name=bitness]:checked').value]
+    req.bits = bits
 
     try {
         // Do the rewriting.
-        const s = postprocess_code(obfuscate(expr, bits, printer))
+        const s = obfuscate_linear(req)
         input.classList.remove('is-invalid')
         input_error.textContent = ''
 
@@ -134,8 +226,11 @@ btn.onclick = () => {
                 window.open(`https://play.rust-lang.org/?version=stable&mode=release&edition=2021&code=${pg_code}`)
             }
             output.appendChild(pg_btn)
-        }
-        else {
+        } else if (printer == Printer.Tex) {
+            MathJax.reset()
+            output.appendChild(MathJax.tex2chtml(s, { scale: 1.3 }))
+            MathJax.set_css('mathjax-styles')
+        } else {
             output.textContent = s
         }
     } catch (err) {
@@ -148,47 +243,4 @@ btn.onclick = () => {
             input_error.textContent = 'Unknown error. Check console.'
         }
     }
-}
-
-// Hide this ugly code down here.
-function postprocess_code(code) {
-    let s = ''
-    let lines = code.split('\n')
-    console.log(lines[0].length)
-    //s += lines[0]
-    //s += '\n'
-    //lines = lines.slice(1)
-    for (let l of lines) {
-        let tabs = 0
-        for (; tabs < l.length && l[tabs] == '\t'; tabs++) {}
-        l = l.substring(tabs)
-
-        inner: for (let j = 0; ; j++) {
-            let max = 65 - 4 * tabs;
-            if (j == 0) {
-                s += '\t'.repeat(tabs)
-            } else {
-                s += '\t'.repeat(tabs+1)
-                max -= 4;
-            }
-
-            if (l.length >= max) {
-                for (let i = max; i >= 0; i--) {
-                    if (l[i] == ' ') {
-                        s += l.substring(0, i)
-                        s += '\n'
-                        l = l.substring(i+1)
-                        continue inner
-                    }
-                }
-            }
-
-            // If we never found a space then just put the whole string into the line anyways.
-            s += l
-            s += '\n'
-            break
-        }
-    }
-
-    return s
 }
