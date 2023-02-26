@@ -1,5 +1,5 @@
 import './mathjax.js'
-import { Bitness, invert_poly, rand_poly } from './wasm.js'
+import { Width, invert_poly, rand_poly } from './wasm.js'
 
 //console.clear()
 
@@ -23,14 +23,14 @@ for (const li of algorithms) {
 }
 
 rand.onclick = () => {
-    const bits = Bitness[document.querySelector('input[name=bitness]:checked').value]
+    const bits = Width[document.querySelector('input[name=width]:checked').value]
     const p = rand_poly(bits)
     input.value = p
 }
 
 invert_btn.onclick = () => {
     const poly = input.value
-    const bits = Bitness[document.querySelector('input[name=bitness]:checked').value]
+    const bits = Width[document.querySelector('input[name=width]:checked').value]
     const alg = algorithm.innerText.trim()
     try {
         input.classList.remove('is-invalid')
