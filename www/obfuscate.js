@@ -131,7 +131,6 @@ btn.onclick = () => {
 function postprocess_code(code) {
     let s = ''
     let lines = code.split('\n')
-    console.log(lines[0].length)
     //s += lines[0]
     //s += '\n'
     //lines = lines.slice(1)
@@ -141,7 +140,7 @@ function postprocess_code(code) {
         l = l.substring(tabs)
 
         inner: for (let j = 0; ; j++) {
-            let max = 65 - 4 * tabs;
+            let max = 68 - 4 * tabs;
             if (j == 0) {
                 s += '\t'.repeat(tabs)
             } else {
