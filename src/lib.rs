@@ -1,5 +1,4 @@
 #![allow(unused)]
-#![feature(min_specialization)]
 
 mod vector;
 mod matrix;
