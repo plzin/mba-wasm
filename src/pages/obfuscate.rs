@@ -32,7 +32,6 @@ fn obfuscate_impl<T: UniformNum + std::fmt::Debug>(
     where Standard: Distribution<T>
 {
     let mut e = Rc::new(Expr::<T>::from_string(expr)?);
-    crate::log(&format!("{:?}", e));
 
     let mut vars = e.vars();
     for i in 0..(REWRITE_VARS - vars.len() as isize) {
@@ -163,9 +162,7 @@ fn obfuscate_expr<T: UniformNum>(er: &mut Rc<Expr<T>>, visited: &mut Vec<*const 
             let mut subs: Vec<(String, Rc<Expr<T>>)> = Vec::new();
 
             expr_to_luexpr(er, &mut lu, &mut subs, false);
-            crate::log(&Printer::C.print_luexpr(&lu));
             *e = rewrite_random(&lu, vars).to_expr();
-            crate::log(&e.print_as_fn(Printer::C));
             for (var, sub) in &mut subs {
                 // Obfuscate the substituted expressions.
                 obfuscate_expr(sub, visited, vars);

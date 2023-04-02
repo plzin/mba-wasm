@@ -29,8 +29,8 @@ pub enum Printer {
 impl Printer {
     /// Abbreviation to turn a UExpr into something
     /// that is `Display`ed correctly.
-    fn u(self, e: &'_ UExpr) -> UExprHelper<'_> {
-        UExprHelper { p: self, e }
+    fn u(self, e: &'_ UExpr) -> UExprPrinter<'_> {
+        UExprPrinter { p: self, e }
     }
 
     pub fn print_uexpr(self, e: &UExpr) -> String {
@@ -160,14 +160,14 @@ impl Printer {
     }
 }
 
-struct UExprHelper<'a> {
+struct UExprPrinter<'a> {
     p: Printer,
     e: &'a UExpr,
 }
 
-impl<'a> UExprHelper<'a> {
-    fn u<'b>(&self, e: &'b UExpr) -> UExprHelper<'b> {
-        UExprHelper { p: self.p, e }
+impl<'a> UExprPrinter<'a> {
+    fn u<'b>(&self, e: &'b UExpr) -> UExprPrinter<'b> {
+        UExprPrinter { p: self.p, e }
     }
 
     fn write_safe(
@@ -189,7 +189,7 @@ impl<'a> UExprHelper<'a> {
     }
 }
 
-impl<'a> Display for UExprHelper<'a> {
+impl<'a> Display for UExprPrinter<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         use UExpr::*;
         use Printer::*;
