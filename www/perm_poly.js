@@ -1,8 +1,6 @@
 import './mathjax.js'
 import { Width, invert_poly, rand_poly } from './wasm.js'
 
-//console.clear()
-
 const input = document.getElementById('input')
 const input_error = document.getElementById('input-error')
 const invert_btn = document.getElementById('invert-btn')

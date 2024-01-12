@@ -83,7 +83,6 @@ impl<T: UnsignedInt> Expr<T> {
             true
         };
 
-
         use Expr::*;
         // SAFETY: This is okay because we make sure with extra logic
         // that this is never encountered twice.
@@ -171,7 +170,7 @@ impl<T: UnsignedInt> Expr<T> {
                 var.push(*c);
                 it.next();
             }
-            
+
             Var(var)
         } else if c.is_ascii_digit() {
             // This can't panic because we check that
@@ -183,9 +182,8 @@ impl<T: UnsignedInt> Expr<T> {
         };
 
         loop {
-            let c = match it.peek() {
-                None => return Ok(e),
-                Some(c) => *c,
+            let Some(c) = it.peek().cloned() else {
+                return Ok(e)
             };
 
             let op_pre = match c {

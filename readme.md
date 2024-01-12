@@ -15,6 +15,11 @@ Generating linear MBA expressions involves solving systems of linear congruences
 which can be done [here](https://plzin.github.io/mba-wasm/linear_congruences.html).
 This was mostly used during debugging but hopefully someone can find use for this.
 
+### Original implementation
+The main implementation with more features can be found [here](https://github.com/plzin/mba).
+This is the WASM port that doesn't use the rug crate for arbitrary precision integers
+and solves linear systems mod n by [diagonalization](https://plzin.github.io/posts/linear-systems-mod-n).
+
 ### How it works
 If you want to understand the algorithm, check out my [blog post](https://plzin.github.io/posts/mba) about it.
 The algorithm is implemented in Rust and compiles to WebAssembly, that will be run in your browser.

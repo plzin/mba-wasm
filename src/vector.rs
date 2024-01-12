@@ -88,7 +88,7 @@ impl<T> Vector<T> {
     }
 
     /// Apply a function to each entry that can fail.
-    /// If the function for the first time, then that resulting error
+    /// If the function fails for the first time, then that resulting error
     /// and the location of the entry is returned.
     pub fn try_map<U, E, F>(&self, mut f: F) -> Result<Vector<U>, (usize, E)>
         where F: FnMut(&T) -> Result<U, E>
