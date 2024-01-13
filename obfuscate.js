@@ -1,4 +1,4 @@
-import { obfuscate, Width, Printer } from './wasm.js';
+import { obfuscate, ObfuscationConfig, Width, Printer } from './wasm.js';
 
 const btn = document.getElementById('obfuscate-btn')
 const input = document.getElementById('input')
@@ -6,6 +6,9 @@ const output = document.getElementById('output')
 const input_error = document.getElementById('input-error')
 const output_type = document.getElementById('output-type')
 const output_types = document.getElementsByName('output-type')
+const aux_vars = document.getElementById('aux-vars')
+const rewrite_ops = document.getElementById('rewrite-ops')
+const rewrite_depth = document.getElementById('rewrite-depth')
 
 // Highlights inline code.
 function hi_in(code) {
@@ -23,18 +26,14 @@ const popover_config = {
 // Popover for the input box.
 new bootstrap.Popover(input, {
     ...popover_config,
-    title: 'Expression that will be obfuscated',
+    title: 'The expression that will be obfuscated',
     content:
 `
-Currently, the expression has to be a linear combination of boolean expressions.
-Check 'What operations are allowed?' at the bottom of the page.
-<br>
-E.g. ${hi_in('3*(x & ~y) + 4*(x | y) - 2*~x')}.
-<br>
-This limitation will be removed in the future and more general expression will be allowed.
-More commonly, you will probably want to use things like ${hi_in('x + y')}, ${hi_in('x - y')}.
-<br>
-Constants (${hi_in('1312')}) are also allowed.
+This expression can be any mixed boolean-arithmetic expression,
+e.g. ${hi_in('x + y')}, ${hi_in('x & ~y')}, also constants ${hi_in('1234')}.
+You can also use non-linear expressions such as ${hi_in('x * y + z')},
+although the current implementation will just obfuscate the linear subexpressions
+and leave the non-linear operations as is.
 `
 })
 
@@ -63,16 +62,20 @@ for (const li of output_types) {
 
 // Do the obfuscation.
 btn.onclick = () => {
-    const expr = input.value
-
     const printer = Printer[output_type.innerText.trim()]
+    const width = Width[document.querySelector('input[name=bitness]:checked').value]
 
-    // Get the number of bits we are obfuscating for.
-    const bits = Width[document.querySelector('input[name=bitness]:checked').value]
+    let cfg = new ObfuscationConfig()
+    cfg.expr = input.value
+    cfg.printer = printer
+    cfg.width = width
+    cfg.aux_vars = Number(aux_vars.value)
+    cfg.rewrite_count = Number(rewrite_ops.value)
+    cfg.rewrite_depth = Number(rewrite_depth.value)
 
     try {
         // Do the rewriting.
-        const s = postprocess_code(obfuscate(expr, bits, printer))
+        const s = postprocess_code(obfuscate(cfg))
         input.classList.remove('is-invalid')
         input_error.textContent = ''
 
@@ -86,7 +89,7 @@ btn.onclick = () => {
 
             // Very hacky and requires the code to contain commas only for the arguments.
             const args = s.split(',').map(() => '0').join(', ')
-            const ce_code = encodeURIComponent(`#include <cstdint>\n#include <iostream>\n\n${s}\n\nint main() {\n\tstd::cout << ${bits == Width.U8 ? '(uint32_t)' : ''}f(${args}) << "\\n";\n}`)
+            const ce_code = encodeURIComponent(`#include <cstdint>\n#include <iostream>\n\n${s}\n\nint main() {\n\tstd::cout << ${width == Width.U8 ? '(uint32_t)' : ''}f(${args}) << "\\n";\n}`)
             const ce_btn = document.createElement('button')
             ce_btn.textContent = 'Open in Compiler Explorer'
             ce_btn.classList.add('btn', 'btn-secondary')

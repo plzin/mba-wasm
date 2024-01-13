@@ -47,15 +47,33 @@
                 <label class="form-check-label" for="bitness-128">128-bit</label>
             </div>
         </div>
-        <div class="dropdown mb-3">
-            Output type
-            <button id="output-type" class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                C
-            </button>
-            <ul class="dropdown-menu">
-                <li><button name="output-type" class="dropdown-item active" type="button">C</button></li>
-                <li><button name="output-type" class="dropdown-item" type="button">Rust</button></li>
-            </ul>
+        <div class="container">
+            <div class="row align-items-end">
+                <div class="col">
+                    <div class="dropdown mb-3">
+                        Output type
+                        <button id="output-type" class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            C
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><button name="output-type" class="dropdown-item active" type="button">C</button></li>
+                            <li><button name="output-type" class="dropdown-item" type="button">Rust</button></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col">
+                    <label for="aux-vars" class="form-label">Number of auxiliary variables: 2</label>
+                    <input type="range" class="form-range" min="0" max="12" value="2" oninput="this.previousElementSibling.textContent = `Number of auxiliary variables: ${this.value}`" id="aux-vars">
+                </div>
+                <div class="col">
+                    <label for="rewrite-ops" class="form-label">Number of rewrite operations: 24</label>
+                    <input type="range" class="form-range" min="4" max="1000" value="24" oninput="this.previousElementSibling.textContent = `Number of rewrite operations: ${this.value}`" id="rewrite-ops">
+                </div>
+                <div class="col">
+                    <label for="rewrite-depth" class="form-label">Depth of rewrite operations: 3</label>
+                    <input type="range" class="form-range" min="1" max="5" value="3" oninput="this.previousElementSibling.textContent = `Depth of rewrite operations: ${this.value}`" id="rewrite-depth">
+                </div>
+            </div>
         </div>
         <button id="obfuscate-btn" type="button" class="btn btn-primary mb-3">Obfuscate</button>
         <div id="output"></div>
@@ -85,7 +103,8 @@
                         <br>
                         My initial (non-WASM) implementation with more features can be found <a href="https://github.com/plzin/mba" target="_blank">here</a>.
                         <br>
-                        The current implementation only uses linear MBA, which can be <a href="https://plzin.github.io/posts/mba-deobf">deobfuscated relatively easily</a>.
+                        The current implementation only obfuscates linear MBA subexpressions and leaves the non-linear parts as is,
+                        which can be <a href="https://plzin.github.io/posts/mba-deobf">deobfuscated relatively easily</a>.
                         I am working on a non-linear version that works like the constant obfuscation at the end of the <a href="https://plzin.github.io/posts/mba">first blog post</a>.
                     </div>
                 </div>

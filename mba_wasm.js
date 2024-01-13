@@ -166,45 +166,42 @@ export function rand_poly(bits) {
     }
 }
 
-/**
-* @param {string} expr
-* @param {Width} width
-* @param {Printer} out
-* @returns {string}
-*/
-export function obfuscate(expr, width, out) {
-    let deferred3_0;
-    let deferred3_1;
-    try {
-        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
-        const ptr0 = passStringToWasm0(expr, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
-        const len0 = WASM_VECTOR_LEN;
-        wasm.obfuscate(retptr, ptr0, len0, width, out);
-        var r0 = getInt32Memory0()[retptr / 4 + 0];
-        var r1 = getInt32Memory0()[retptr / 4 + 1];
-        var r2 = getInt32Memory0()[retptr / 4 + 2];
-        var r3 = getInt32Memory0()[retptr / 4 + 3];
-        var ptr2 = r0;
-        var len2 = r1;
-        if (r3) {
-            ptr2 = 0; len2 = 0;
-            throw takeObject(r2);
-        }
-        deferred3_0 = ptr2;
-        deferred3_1 = len2;
-        return getStringFromWasm0(ptr2, len2);
-    } finally {
-        wasm.__wbindgen_add_to_stack_pointer(16);
-        wasm.__wbindgen_free(deferred3_0, deferred3_1, 1);
-    }
-}
-
 function _assertClass(instance, klass) {
     if (!(instance instanceof klass)) {
         throw new Error(`expected instance of ${klass.name}`);
     }
     return instance.ptr;
 }
+/**
+* @param {ObfuscationConfig} cfg
+* @returns {string}
+*/
+export function obfuscate(cfg) {
+    let deferred2_0;
+    let deferred2_1;
+    try {
+        const retptr = wasm.__wbindgen_add_to_stack_pointer(-16);
+        _assertClass(cfg, ObfuscationConfig);
+        wasm.obfuscate(retptr, cfg.__wbg_ptr);
+        var r0 = getInt32Memory0()[retptr / 4 + 0];
+        var r1 = getInt32Memory0()[retptr / 4 + 1];
+        var r2 = getInt32Memory0()[retptr / 4 + 2];
+        var r3 = getInt32Memory0()[retptr / 4 + 3];
+        var ptr1 = r0;
+        var len1 = r1;
+        if (r3) {
+            ptr1 = 0; len1 = 0;
+            throw takeObject(r2);
+        }
+        deferred2_0 = ptr1;
+        deferred2_1 = len1;
+        return getStringFromWasm0(ptr1, len1);
+    } finally {
+        wasm.__wbindgen_add_to_stack_pointer(16);
+        wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+    }
+}
+
 /**
 * @param {ObfLinReq} req
 * @returns {string}
@@ -295,9 +292,6 @@ function handleError(f, args) {
     }
 }
 /**
-*/
-export const Width = Object.freeze({ U8:0,"0":"U8",U16:1,"1":"U16",U32:2,"2":"U32",U64:3,"3":"U64",U128:4,"4":"U128", });
-/**
 * Determines how the result will be printed.
 */
 export const Printer = Object.freeze({
@@ -317,6 +311,9 @@ Rust:2,"2":"Rust",
 * Tex expression.
 */
 Tex:3,"3":"Tex", });
+/**
+*/
+export const Width = Object.freeze({ U8:0,"0":"U8",U16:1,"1":"U16",U32:2,"2":"U32",U64:3,"3":"U64",U128:4,"4":"U128", });
 /**
 * Obfuscation settings.
 */
@@ -400,6 +397,116 @@ export class ObfLinReq {
         const ptr0 = passStringToWasm0(op, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
         const len0 = WASM_VECTOR_LEN;
         wasm.obflinreq_add_op(this.__wbg_ptr, ptr0, len0);
+    }
+}
+/**
+*/
+export class ObfuscationConfig {
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_obfuscationconfig_free(ptr);
+    }
+    /**
+    * The integer width.
+    * @returns {Width}
+    */
+    get width() {
+        const ret = wasm.__wbg_get_obfuscationconfig_width(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+    * The integer width.
+    * @param {Width} arg0
+    */
+    set width(arg0) {
+        wasm.__wbg_set_obfuscationconfig_width(this.__wbg_ptr, arg0);
+    }
+    /**
+    * How to print the result.
+    * @returns {Printer}
+    */
+    get printer() {
+        const ret = wasm.__wbg_get_obfuscationconfig_printer(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+    * How to print the result.
+    * @param {Printer} arg0
+    */
+    set printer(arg0) {
+        wasm.__wbg_set_obfuscationconfig_printer(this.__wbg_ptr, arg0);
+    }
+    /**
+    * The number of auxiliary variables to use.
+    * @returns {number}
+    */
+    get aux_vars() {
+        const ret = wasm.__wbg_get_obfuscationconfig_aux_vars(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+    * The number of auxiliary variables to use.
+    * @param {number} arg0
+    */
+    set aux_vars(arg0) {
+        wasm.__wbg_set_obfuscationconfig_aux_vars(this.__wbg_ptr, arg0);
+    }
+    /**
+    * The depth of the rewrite expressions.
+    * Ultimately, we should probably just generate a random truth table
+    * and find a simple expression for it with `egg`.
+    * @returns {number}
+    */
+    get rewrite_depth() {
+        const ret = wasm.__wbg_get_obfuscationconfig_rewrite_depth(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+    * The depth of the rewrite expressions.
+    * Ultimately, we should probably just generate a random truth table
+    * and find a simple expression for it with `egg`.
+    * @param {number} arg0
+    */
+    set rewrite_depth(arg0) {
+        wasm.__wbg_set_obfuscationconfig_rewrite_depth(this.__wbg_ptr, arg0);
+    }
+    /**
+    * The number of rewrite expressions to use.
+    * @returns {number}
+    */
+    get rewrite_count() {
+        const ret = wasm.__wbg_get_obfuscationconfig_rewrite_count(this.__wbg_ptr);
+        return ret >>> 0;
+    }
+    /**
+    * The number of rewrite expressions to use.
+    * @param {number} arg0
+    */
+    set rewrite_count(arg0) {
+        wasm.__wbg_set_obfuscationconfig_rewrite_count(this.__wbg_ptr, arg0);
+    }
+    /**
+    */
+    constructor() {
+        const ret = wasm.obfuscationconfig_new();
+        this.__wbg_ptr = ret >>> 0;
+        return this;
+    }
+    /**
+    * @param {string} expr
+    */
+    set expr(expr) {
+        const ptr0 = passStringToWasm0(expr, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        wasm.obfuscationconfig_set_expr(this.__wbg_ptr, ptr0, len0);
     }
 }
 /**
