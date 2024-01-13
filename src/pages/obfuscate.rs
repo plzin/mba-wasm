@@ -14,33 +14,81 @@ use crate::uniform_expr::{LUExpr, UExpr, Valuation};
 use crate::numbers::{UnsignedInt, UniformNum};
 
 #[wasm_bindgen]
-pub fn obfuscate(
-    expr: String, width: Width, out: Printer
-) -> Result<String, String> {
-    match width {
-        Width::U8   => obfuscate_impl::<Wrapping<u8>>(expr, out),
-        Width::U16  => obfuscate_impl::<Wrapping<u16>>(expr, out),
-        Width::U32  => obfuscate_impl::<Wrapping<u32>>(expr, out),
-        Width::U64  => obfuscate_impl::<Wrapping<u64>>(expr, out),
-        Width::U128 => obfuscate_impl::<Wrapping<u128>>(expr, out),
+#[derive(Debug)]
+pub struct ObfuscationConfig {
+    /// The expression to obfuscate.
+    #[wasm_bindgen(skip)]
+    pub expr: String,
+
+    /// The integer width.
+    pub width: Width,
+
+    /// How to print the result.
+    pub printer: Printer,
+
+    /// The number of auxiliary variables to use.
+    pub aux_vars: usize,
+
+    /// The depth of the rewrite expressions.
+    /// Ultimately, we should probably just generate a random truth table
+    /// and find a simple expression for it with `egg`.
+    pub rewrite_depth: u8,
+
+    /// The number of rewrite expressions to use.
+    pub rewrite_count: usize,
+}
+
+#[wasm_bindgen]
+impl ObfuscationConfig {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Self {
+        Self {
+            expr: String::new(),
+            width: Width::U8,
+            printer: Printer::C,
+            aux_vars: 0,
+            rewrite_depth: 3,
+            rewrite_count: 24,
+        }
+    }
+
+    #[wasm_bindgen(setter)]
+    pub fn set_expr(&mut self, expr: String) {
+        self.expr = expr;
+    }
+}
+
+#[wasm_bindgen]
+pub fn obfuscate(cfg: &ObfuscationConfig) -> Result<String, String> {
+    match cfg.width {
+        Width::U8   => obfuscate_impl::<Wrapping<u8>>(cfg),
+        Width::U16  => obfuscate_impl::<Wrapping<u16>>(cfg),
+        Width::U32  => obfuscate_impl::<Wrapping<u32>>(cfg),
+        Width::U64  => obfuscate_impl::<Wrapping<u64>>(cfg),
+        Width::U128 => obfuscate_impl::<Wrapping<u128>>(cfg),
     }
 }
 
 fn obfuscate_impl<T: UniformNum + std::fmt::Debug>(
-    expr: String, out: Printer
-) -> Result<String, String> 
+    cfg: &ObfuscationConfig
+) -> Result<String, String>
     where Standard: Distribution<T>
 {
-    let mut e = Rc::new(Expr::<T>::from_string(expr)?);
+    crate::log(&format!("Obfuscating with config: {:?}", cfg));
+    let mut e = Rc::new(Expr::<T>::from_string(&cfg.expr)?);
 
     let mut vars = e.vars();
-    for i in 0..(REWRITE_VARS - vars.len() as isize) {
+    for i in 0..cfg.aux_vars {
         vars.push(format!("aux{}", i));
     }
 
+    if vars.is_empty() {
+        return Err("No variables to obfuscate with. Add auxiliary variables.".to_owned());
+    }
+
     let mut v = Vec::new();
-    obfuscate_expr(&mut e, &mut v, &vars);
-    Ok(e.print_as_fn(out))
+    obfuscate_expr(&mut e, &mut v, &vars, cfg);
+    Ok(e.print_as_fn(cfg.printer))
 }
 
 /// Tries to convert the expression to a uniform expression.
@@ -127,7 +175,12 @@ fn expr_to_luexpr<T: UniformNum>(
     }
 }
 
-fn obfuscate_expr<T: UniformNum>(er: &mut Rc<Expr<T>>, visited: &mut Vec<*const Expr<T>>, vars: &[String])
+fn obfuscate_expr<T: UniformNum>(
+    er: &mut Rc<Expr<T>>,
+    visited: &mut Vec<*const Expr<T>>,
+    vars: &[String],
+    cfg: &ObfuscationConfig
+)
     where Standard: Distribution<T>
 {
     let ptr = Rc::as_ptr(er);
@@ -142,16 +195,16 @@ fn obfuscate_expr<T: UniformNum>(er: &mut Rc<Expr<T>>, visited: &mut Vec<*const 
 
     match e {
         Expr::Mul(l, r) => {
-            obfuscate_expr(l, visited, vars);
-            obfuscate_expr(r, visited, vars);
+            obfuscate_expr(l, visited, vars, cfg);
+            obfuscate_expr(r, visited, vars, cfg);
         },
         Expr::Div(l, r) | Expr::Mod(l, r) => {
-            obfuscate_expr(l, visited, vars);
-            obfuscate_expr(r, visited, vars);
+            obfuscate_expr(l, visited, vars, cfg);
+            obfuscate_expr(r, visited, vars, cfg);
         },
         Expr::Shl(l, r) | Expr::Shr(l, r) => {
-            obfuscate_expr(l, visited, vars);
-            obfuscate_expr(r, visited, vars);
+            obfuscate_expr(l, visited, vars, cfg);
+            obfuscate_expr(r, visited, vars, cfg);
         },
         _ => {
             // Try to find the largest subexpression that is linear MBA
@@ -162,10 +215,10 @@ fn obfuscate_expr<T: UniformNum>(er: &mut Rc<Expr<T>>, visited: &mut Vec<*const 
             let mut subs: Vec<(String, Rc<Expr<T>>)> = Vec::new();
 
             expr_to_luexpr(er, &mut lu, &mut subs, false);
-            *e = rewrite_random(&lu, vars).to_expr();
+            *e = rewrite_random(&lu, vars, cfg).to_expr();
             for (var, sub) in &mut subs {
                 // Obfuscate the substituted expressions.
-                obfuscate_expr(sub, visited, vars);
+                obfuscate_expr(sub, visited, vars, cfg);
 
                 // Substitute them for the variables.
                 e.substitute(sub, var);
@@ -174,12 +227,11 @@ fn obfuscate_expr<T: UniformNum>(er: &mut Rc<Expr<T>>, visited: &mut Vec<*const 
     }
 }
 
-const REWRITE_VARS: isize = 4;
-const REWRITE_EXPR_DEPTH: u8 = 3;
-const REWRITE_EXPR_COUNT: usize = 24;
 const REWRITE_TRIES: usize = 128;
 
-fn rewrite_random<T: UniformNum>(e: &LUExpr<T>, vars: &[String]) -> LUExpr<T>
+fn rewrite_random<T: UniformNum>(
+    e: &LUExpr<T>, vars: &[String], cfg: &ObfuscationConfig
+) -> LUExpr<T>
     where Standard: Distribution<T>
 {
     let mut vars: Vec<_> = vars.iter().cloned().collect();
@@ -190,9 +242,9 @@ fn rewrite_random<T: UniformNum>(e: &LUExpr<T>, vars: &[String]) -> LUExpr<T>
     }
     for _ in 0..REWRITE_TRIES {
         let mut ops = Vec::new();
-        for _ in 0..REWRITE_EXPR_COUNT {
+        for _ in 0..cfg.rewrite_count {
             ops.push(LUExpr::from_uexpr(
-                random_bool_expr(&vars, REWRITE_EXPR_DEPTH)
+                random_bool_expr(&vars, cfg.rewrite_depth)
             ));
         }
 
@@ -223,7 +275,7 @@ fn random_bool_expr<T: AsRef<str>>(vars: &[T], max_depth: u8) -> UExpr {
         2 => UExpr::And(random_bool_expr(vars, d).into(), random_bool_expr(vars, d).into()),
         3 => UExpr::Or(random_bool_expr(vars, d).into(), random_bool_expr(vars, d).into()),
         4 => UExpr::Xor(random_bool_expr(vars, d).into(), random_bool_expr(vars, d).into()),
-        _ => unreachable!(),
+        _ => panic!("If you get here, mathematics is broken."),
     }
 }
 
@@ -257,7 +309,7 @@ pub fn normalize_op(expr: String, bits: Width) -> String {
 fn obfuscate_linear_impl<T: UniformNum + std::fmt::Display>(
     req: ObfLinReq
 ) -> Result<String, String>
-    where 
+    where
         T: UniformNum + std::fmt::Display,
         Standard: Distribution<T>
 {
@@ -277,7 +329,7 @@ fn obfuscate_linear_impl<T: UniformNum + std::fmt::Display>(
 fn rewrite<T: UniformNum + std::fmt::Display>(
     expr: &LUExpr<T>, ops: &[LUExpr<T>], randomize: bool
 ) -> Option<LUExpr<T>>
-    where 
+    where
         T: UniformNum + std::fmt::Display,
         Standard: Distribution<T>
 {
@@ -405,19 +457,4 @@ impl ObfLinReq {
     pub fn add_op(&mut self, op: String) {
         self.ops.push(op);
     }
-
-    //#[wasm_bindgen(setter)]
-    //pub fn set_bits(&mut self, bits: Bitness) {
-    //    self.bits = bits;
-    //}
-
-    //#[wasm_bindgen(setter)]
-    //pub fn set_randomize(&mut self, randomize: bool) {
-    //    self.randomize = randomize;
-    //}
-
-    //#[wasm_bindgen(setter)]
-    //pub fn set_printer(&mut self, printer: Printer) {
-    //    self.printer = printer;
-    //}
 }

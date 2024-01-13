@@ -47,7 +47,7 @@ impl Printer {
                     4 => "uint32_t",
                     8 => "uint64_t",
                     16 => "uint128_t",
-                    _ => unreachable!(),
+                    s => panic!("Unsupported size: {s}"),
                 };
 
                 let vars = e.vars();
@@ -70,7 +70,7 @@ impl Printer {
                     4   => ("Wrapping<u32>", "u32"),
                     8   => ("Wrapping<u64>", "u64"),
                     16  => ("Wrapping<u128>", "u128"),
-                    _ => unreachable!(),
+                    _ => panic!("Unsupported size: {s}"),
                 };
 
                 let vars = e.vars();

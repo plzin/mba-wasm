@@ -215,7 +215,7 @@ impl<T: UnsignedInt> Expr<T> {
                 '&' => And(lhs, rhs),
                 '|' => Or(lhs, rhs),
                 '^' => Xor(lhs, rhs),
-                _ => unreachable!(),
+                c => panic!("Unknown operator: {c}"),
             };
         };
     }
