@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 use std::fmt::{self, Display, Formatter, Write};
 use std::num::Wrapping;
 use std::rc::Rc;
-use rand::distributions::{Standard, Distribution};
+use rand::distr::{Distribution, StandardUniform};
 use wasm_bindgen::prelude::*;
 use super::Width;
 use crate::congruence_solver::solve_congruences;
@@ -72,7 +72,7 @@ pub fn obfuscate(cfg: &ObfuscationConfig) -> Result<String, String> {
 fn obfuscate_impl<T: UniformNum + std::fmt::Debug>(
     cfg: &ObfuscationConfig
 ) -> Result<String, String>
-    where Standard: Distribution<T>
+    where StandardUniform: Distribution<T>
 {
     crate::log(&format!("Obfuscating with config: {:?}", cfg));
     let mut e = Rc::new(Expr::<T>::from_string(&cfg.expr)?);
@@ -181,7 +181,7 @@ fn obfuscate_expr<T: UniformNum>(
     vars: &[String],
     cfg: &ObfuscationConfig
 )
-    where Standard: Distribution<T>
+    where StandardUniform: Distribution<T>
 {
     let ptr = Rc::as_ptr(er);
     if Rc::strong_count(er) > 1 {
@@ -232,9 +232,9 @@ const REWRITE_TRIES: usize = 128;
 fn rewrite_random<T: UniformNum>(
     e: &LUExpr<T>, vars: &[String], cfg: &ObfuscationConfig
 ) -> LUExpr<T>
-    where Standard: Distribution<T>
+    where StandardUniform: Distribution<T>
 {
-    let mut vars: Vec<_> = vars.iter().cloned().collect();
+    let mut vars: Vec<_> = vars.to_vec();
     for v in e.vars() {
         if !vars.contains(&v) {
             vars.push(v);
@@ -261,7 +261,7 @@ fn rewrite_random<T: UniformNum>(
 fn random_bool_expr<T: AsRef<str>>(vars: &[T], max_depth: u8) -> UExpr {
     assert!(!vars.is_empty(), "There needs to be at least one variable for the random expression.");
 
-    let rand_var = || UExpr::Var(vars[rand::random::<usize>() % vars.len()].as_ref().to_owned());
+    let rand_var = || UExpr::Var(vars[rand::random_range(0..vars.len())].as_ref().to_owned());
 
     if max_depth == 0 {
         return rand_var();
@@ -269,7 +269,7 @@ fn random_bool_expr<T: AsRef<str>>(vars: &[T], max_depth: u8) -> UExpr {
 
     // Generate one of the four variants uniformly at random.
     let d = max_depth - 1;
-    match rand::random::<usize>() % 5 {
+    match rand::random_range(0..5) {
         0 => rand_var(),
         1 => UExpr::Not(random_bool_expr(vars, d).into()),
         2 => UExpr::And(random_bool_expr(vars, d).into(), random_bool_expr(vars, d).into()),
@@ -306,12 +306,12 @@ pub fn normalize_op(expr: String, bits: Width) -> String {
     }
 }
 
-fn obfuscate_linear_impl<T: UniformNum + std::fmt::Display>(
+fn obfuscate_linear_impl<T>(
     req: ObfLinReq
 ) -> Result<String, String>
     where
         T: UniformNum + std::fmt::Display,
-        Standard: Distribution<T>
+        StandardUniform: Distribution<T>
 {
     let expr = LUExpr::<T>::from_string(req.expr).ok_or(
         "Input is not a linear combination of uniform expressions".to_owned()
@@ -326,12 +326,12 @@ fn obfuscate_linear_impl<T: UniformNum + std::fmt::Display>(
         .ok_or("Operations can't be used to rewrite the input".to_owned())
 }
 
-fn rewrite<T: UniformNum + std::fmt::Display>(
+fn rewrite<T>(
     expr: &LUExpr<T>, ops: &[LUExpr<T>], randomize: bool
 ) -> Option<LUExpr<T>>
     where
         T: UniformNum + std::fmt::Display,
-        Standard: Distribution<T>
+        StandardUniform: Distribution<T>
 {
     // Find all variables.
     let mut v = BTreeSet::new();

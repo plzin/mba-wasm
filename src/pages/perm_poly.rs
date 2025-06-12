@@ -3,7 +3,7 @@ use std::ops::ShlAssign;
 
 use num_traits::{Num, NumAssign};
 use rand::Rng;
-use rand::distributions::{Standard, Distribution, Uniform};
+use rand::distr::{StandardUniform, Distribution, Uniform};
 use wasm_bindgen::prelude::*;
 
 use crate::congruence_solver;
@@ -222,24 +222,24 @@ fn is_perm_poly<T: UniformNum>(f: &Polynomial<T>) -> bool {
 }
 
 fn rand_poly_impl<T>() -> String
-    where 
+    where
         T: UniformNum + std::fmt::Display,
-        Standard: Distribution<T>,
+        StandardUniform: Distribution<T>,
 {
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let zi = ZeroIdeal::<T>::init();
     // This is the smallest degree possible that can represent any permutation
     // that has a polynomial representation.
     let degree = zi.gen.last().unwrap().len() - 1;
 
-    // Create the polynomial. 
+    // Create the polynomial.
     let mut p = Polynomial {
         coeffs: vec![T::zero(); degree + 1]
     };
 
     // Initialize the coefficients with random values.
     for c in &mut p.coeffs {
-        *c = rng.gen();
+        *c = rng.random();
     }
 
     // a_1 has to be odd.
@@ -249,14 +249,14 @@ fn rand_poly_impl<T>() -> String
 
     // a_2 + a_4 + ... has to be even.
     if p.coeffs.iter().skip(2).step_by(2).fold(false, parity) {
-        let dist = Uniform::from(1..=degree/2);
+        let dist = Uniform::new_inclusive(1, degree/2).unwrap();
         let i = dist.sample(&mut rng);
         p.coeffs[2*i] += T::one();
     }
 
     // a_3 + a_5 + ... has to be even.
     if p.coeffs.iter().skip(3).step_by(2).fold(false, parity) {
-        let dist = Uniform::from(1..=(degree-1)/2);
+        let dist = Uniform::new_inclusive(1, (degree - 1) / 2).unwrap();
         let i = dist.sample(&mut rng);
         p.coeffs[2*i+1] += T::one();
     }

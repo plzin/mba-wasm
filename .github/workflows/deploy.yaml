@@ -22,7 +22,7 @@ jobs:
         run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
       - name: Build Rust to WASM
-        run: wasm-pack build --target web
+        run: RUSTFLAGS='--cfg getrandom_backend="wasm_js"' wasm-pack build --target web
 
       - name: Copy WASM files to www folder
         run: cp ./pkg/mba_wasm.js ./pkg/mba_wasm_bg.wasm ./www/

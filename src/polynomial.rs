@@ -51,7 +51,7 @@ impl<T: NumAssign + Copy> Polynomial<T> {
 
     /// Is this the identity polynomial P(X)=X?
     pub fn is_id(&self) -> bool {
-        self.coeffs == &[T::zero(), T::one()]
+        self.coeffs == [T::zero(), T::one()]
     }
 
     /// Removes leading zero coefficients.
@@ -74,7 +74,7 @@ impl<T: NumAssign + Copy> Polynomial<T> {
     /// Evaluate the polynomial at x.
     pub fn eval(&self, x: T) -> T {
         // This is Horner's method.
-        
+
         // Iterate over the coefficients in reverse order.
         let mut iter = self.coeffs.iter().rev().cloned();
 
@@ -212,7 +212,7 @@ impl<T: Num + Copy> Add for &Polynomial<T> {
         for c in &max.coeffs[min.len()..] {
             coeffs.push(*c);
         }
-        
+
         Polynomial { coeffs }
     }
 }
@@ -261,7 +261,7 @@ impl<T: Num + Copy> Sub for &Polynomial<T> {
         for c in &max.coeffs[min.len()..] {
             coeffs.push(*c);
         }
-        
+
         Polynomial { coeffs }
     }
 }
